@@ -160,15 +160,20 @@ void D3D12HelloWindow::LoadAssets() {
 	// Create the vertex buffer
 	{
 		Vertex triangleVertices[] = {
-			{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-			{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-			{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },  // 0
+			{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },  // 1
+			{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }, // 2
+			{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }  // 5
+		};
+
+
+		uint32_t indices[] = {
+			0, 1, 2,  // First Triangle
+			2, 1, 3   // Second Triangle
 		};
 
 		const UINT vertexBufferSize = sizeof(triangleVertices);
+
 
 		ThrowIfFailed(m_device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -177,6 +182,8 @@ void D3D12HelloWindow::LoadAssets() {
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&m_vertexBuffer)));
+
+		m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
 
 		// Copy the triangle data to the vertex buffer
 		UINT8* pVertexDataBegin;
@@ -188,6 +195,31 @@ void D3D12HelloWindow::LoadAssets() {
 		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 		m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 		m_vertexBufferView.SizeInBytes = vertexBufferSize;
+
+		const UINT indexBufferSize = sizeof(indices);
+
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m_indexBuffer)
+		));
+
+		m_indexBuffer->SetName(L"Index Buffer Resource Heap");
+
+		UINT8* pIndexDataBegin;
+		//CD3DX12_RANGE readRange(0, 0);
+		ThrowIfFailed(m_indexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
+		memcpy(pIndexDataBegin, indices, sizeof(indices));
+		m_indexBuffer->Unmap(0, nullptr);
+
+		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		m_indexBufferView.SizeInBytes = indexBufferSize;
+
+
 	}
 
 	{
@@ -240,7 +272,8 @@ void D3D12HelloWindow::PopulateCommandList() {
 	m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	m_commandList->DrawInstanced(6, 1, 0, 0);
+	m_commandList->IASetIndexBuffer(&m_indexBufferView);
+	m_commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	
