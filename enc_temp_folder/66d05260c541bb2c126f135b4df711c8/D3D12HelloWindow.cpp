@@ -196,22 +196,54 @@ void D3D12HelloWindow::LoadAssets() {
 		const UINT vertexBufferSize = sizeof(triangleVertices);
 
 
+		//ThrowIfFailed(m_device->CreateCommittedResource(
+		//&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		//	D3D12_HEAP_FLAG_NONE,
+		//	&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+		//	D3D12_RESOURCE_STATE_GENERIC_READ,
+		//	nullptr,
+		//	IID_PPV_ARGS(&m_vertexBuffer)));
+
+		//m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
+
+		//// Copy the triangle data to the vertex buffer
+		//UINT8* pVertexDataBegin;
+		//CD3DX12_RANGE readRange(0, 0);
+		//ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+		//memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		//m_vertexBuffer->Unmap(0, nullptr);
+
+		//m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+		//m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+		//m_vertexBufferView.SizeInBytes = vertexBufferSize;
+
+		//int vBufferSize = sizeof(vList);
+
+		// create default heap
+		// default heap is memory on the GPU. Only the GPU has access to this memory
+		// To get data into this heap, we will have to upload the data using
+		// an upload heap
 		m_device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), // resource description for a buffer
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
+			D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
+			// from the upload heap to this heap
+			nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
 			IID_PPV_ARGS(&m_vertexBuffer));
 
+		// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
 		m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
 
+		// create upload heap
+		// upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
+		// We will upload the vertex buffer using this heap to the default heap
 		ID3D12Resource* vBufferUploadHeap;
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), // resource description for a buffer
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
 			nullptr,
 			IID_PPV_ARGS(&vBufferUploadHeap)));
 		vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
@@ -222,6 +254,8 @@ void D3D12HelloWindow::LoadAssets() {
 		vertexData.RowPitch = vertexBufferSize; // size of all our triangle vertex data
 		vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
 
+		// we are now creating a command with the command list to copy the data from
+		// the upload heap to the default heap
 		UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vBufferUploadHeap, 0, 0, 1, &vertexData);
 
 		// transition the vertex buffer data from copy destination state to vertex buffer state
