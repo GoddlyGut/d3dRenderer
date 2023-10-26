@@ -171,21 +171,21 @@ void D3D12HelloWindow::LoadAssets() {
 
 	// Create the vertex buffer
 	{
-		//Vertex triangleVertices[] = {
-		//	{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },  // 0
-		//	{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },  // 1
-		//	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }, // 2
-		//	{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }  // 5
-		//};
-
 		Vertex triangleVertices[] = {
-	{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-	{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-	{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-	{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },  // 0
+			{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },  // 1
+			{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }, // 2
+			{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }  // 5
 		};
+
+	//	Vertex triangleVertices[] = {
+	//{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+	//{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+	//{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+	//{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+	//{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+	//{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+	//	};
 
 
 		uint32_t indices[] = {
@@ -206,15 +206,15 @@ void D3D12HelloWindow::LoadAssets() {
 
 		m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
 
-		ID3D12Resource* vBufferUploadHeap;
+		ID3D12Resource* vertexBufferUploadHeap;
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), // resource description for a buffer
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&vBufferUploadHeap)));
-		vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
+			IID_PPV_ARGS(&vertexBufferUploadHeap)));
+		vertexBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
 
 		// store vertex buffer in upload heap
 		D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -222,13 +222,54 @@ void D3D12HelloWindow::LoadAssets() {
 		vertexData.RowPitch = vertexBufferSize; // size of all our triangle vertex data
 		vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
 
-		UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vBufferUploadHeap, 0, 0, 1, &vertexData);
+		UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexBufferUploadHeap, 0, 0, 1, &vertexData);
 
 		// transition the vertex buffer data from copy destination state to vertex buffer state
 		m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
+		
+
+
+
+
+		const UINT indexBufferSize = sizeof(indices);
+
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m_indexBuffer)
+		));
+
+		m_indexBuffer->SetName(L"Index Buffer Resource Heap");
+
+
+		ID3D12Resource* indexBufferUploadHeap;
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
+			D3D12_HEAP_FLAG_NONE, // no flags
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize), // resource description for a buffer
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&indexBufferUploadHeap)));
+		indexBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
+
+		// store vertex buffer in upload heap
+		D3D12_SUBRESOURCE_DATA indexData = {};
+		indexData.pData = reinterpret_cast<BYTE*>(indices); // pointer to our vertex array
+		indexData.RowPitch = indexBufferSize; // size of all our triangle vertex data
+		indexData.SlicePitch = indexBufferSize; // also the size of our triangle vertex data
+
+		UpdateSubresources(m_commandList.Get(), m_indexBuffer.Get(), indexBufferUploadHeap, 0, 0, 1, &indexData);
+
+		// transition the vertex buffer data from copy destination state to vertex buffer state
+		m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+
 		m_commandList->Close();
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get()};
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		m_fenceValue++;
@@ -239,33 +280,9 @@ void D3D12HelloWindow::LoadAssets() {
 		m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 		m_vertexBufferView.SizeInBytes = vertexBufferSize;
 
-
-
-
-		//const UINT indexBufferSize = sizeof(indices);
-
-		/*ThrowIfFailed(m_device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&m_indexBuffer)
-		));
-
-		m_indexBuffer->SetName(L"Index Buffer Resource Heap");
-
-		UINT8* pIndexDataBegin;
-		CD3DX12_RANGE readRange(0, 0);
-		ThrowIfFailed(m_indexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
-		memcpy(pIndexDataBegin, indices, sizeof(indices));
-		m_indexBuffer->Unmap(0, nullptr);
-
 		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
 		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-		m_indexBufferView.SizeInBytes = indexBufferSize;*/
-
-
+		m_indexBufferView.SizeInBytes = indexBufferSize;
 	}
 
 
@@ -310,9 +327,9 @@ void D3D12HelloWindow::PopulateCommandList() {
 	m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	//m_commandList->IASetIndexBuffer(&m_indexBufferView);
-	m_commandList->DrawInstanced(6, 1, 0, 0);
-
+	m_commandList->IASetIndexBuffer(&m_indexBufferView);
+	//m_commandList->DrawInstanced(6, 1, 0, 0);
+	m_commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	
 	ThrowIfFailed(m_commandList->Close());
