@@ -7,10 +7,10 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 
-class D3D12HelloWindow : public DXSample
+class Renderer : public DXSample
 {
 public:
-	D3D12HelloWindow(UINT width, UINT height, std::wstring name);
+	Renderer(UINT width, UINT height, std::wstring name);
 
 	virtual void OnInit();
 	virtual void OnUpdate();
@@ -53,5 +53,10 @@ private:
 	void LoadAssets();
 	void PopulateCommandList();
 	void WaitForPreviousFrame();
+
+	void SetupFence();
+	void SetupShaders();
+	void SetupRootSignature();
+	void SetupVertexBuffer();
 };
 
