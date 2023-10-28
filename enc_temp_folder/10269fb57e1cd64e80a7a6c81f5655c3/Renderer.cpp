@@ -246,6 +246,31 @@ void Renderer::SetupRootSignature() {
 }
 
 void Renderer::SetupVertexBuffer() {
+	//Vertex triangleVertices[] = {
+	//	{ { -1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },  // 0
+	//	{ { 1.0f / m_aspectRatio, 1.0f / m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },  // 1
+	//	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }, // 2
+	//	{ { 1.0f / m_aspectRatio, -1.0f / m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }  // 5
+	//};
+
+
+
+	//uint32_t indices[] = {
+	//	0, 1, 2,  // First Triangle
+	//	2, 1, 3   // Second Triangle
+	//};
+
+	//Vertex cubeVertices[] =
+	//{
+	//	{ { -1.0f / m_aspectRatio,  1.0f / m_aspectRatio, -1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }, // 0
+	//	{ {  1.0f / m_aspectRatio,  1.0f / m_aspectRatio, -1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }, // 1
+	//	{ {  1.0f / m_aspectRatio, -1.0f / m_aspectRatio, -1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }, // 2
+	//	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio, -1.0f }, { 1.0f, 1.0f, 0.0f, 1.0f } }, // 3
+	//	{ { -1.0f / m_aspectRatio,  1.0f / m_aspectRatio,  1.0f }, { 0.0f, 1.0f, 1.0f, 1.0f } }, // 4
+	//	{ {  1.0f / m_aspectRatio,  1.0f / m_aspectRatio,  1.0f }, { 1.0f, 0.0f, 1.0f, 1.0f } }, // 5
+	//	{ {  1.0f / m_aspectRatio, -1.0f / m_aspectRatio,  1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }, // 6
+	//	{ { -1.0f / m_aspectRatio, -1.0f / m_aspectRatio,  1.0f }, { 0.5f, 0.5f, 0.5f, 1.0f } }  // 7
+	//};
 
 	Vertex cubeVertices[] = {
 		// front face
