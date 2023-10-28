@@ -11,6 +11,7 @@
 
 #pragma once
 #include <stdexcept>
+#include <iostream>
 
 
 // Note that while ComPtr is used to manage the lifetime of resources on the CPU,
@@ -39,11 +40,24 @@ private:
 
 inline void ThrowIfFailed(HRESULT hr)
 {
-    if (FAILED(hr))
-    {
-        throw HrException(hr);
-    }
+	if (FAILED(hr))
+	{
+		LPVOID errorMsg;
+		DWORD dwFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM;
+		if (FormatMessage(dwFlags, nullptr, hr, 0, (LPWSTR)&errorMsg, 0, nullptr) != 0)
+		{
+			// Successfully formatted message
+			std::cerr << L"An error occurred: " << (LPWSTR)errorMsg << std::endl;
+			LocalFree(errorMsg);
+		}
+		else
+		{
+			std::cerr << L"An error occurred. Could not format error message." << std::endl;
+		}
+		throw HrException(hr);
+	}
 }
+
 
 inline void GetAssetsPath(_Out_writes_(pathSize) WCHAR* path, UINT pathSize)
 {
