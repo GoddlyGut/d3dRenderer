@@ -133,7 +133,7 @@ void Renderer::SetupShaders() {
 	ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
@@ -212,6 +212,7 @@ void Renderer::SetupShaders() {
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleMask = 0xffffffff;
 	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
@@ -253,18 +254,18 @@ void Renderer::SetupVertexBuffer() {
 		{ {0.5f, -0.5f, -0.5f}, { 1.0f, 0.0f, 1.0f, 1.0f } },
 		{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} },
 		{ { 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f, 1.0f} },
-		  //{ right side face	  }
-		  { { 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} },
-		  { { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} },
-		  { { 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} },
-		  { { 0.5f,  0.5f, -0.5f}, { 0.0f, 1.0f, 0.0f, 1.0f} },
-		//{ left side face	  }
+		//{ right side face
+		{ { 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f} },
+		{ { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f} },
+		{ { 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f} },
+		{ { 0.5f,  0.5f, -0.5f}, { 0.0f, 1.0f, 0.0f, 1.0f} },
+		//{ left side face
 		{ {-0.5f,  0.5f,  0.5f},{ 1.0f, 0.0f, 0.0f, 1.0f} },
 		{ {-0.5f, -0.5f, -0.5f},{ 1.0f, 0.0f, 1.0f, 1.0f} },
 		{ {-0.5f, -0.5f,  0.5f},{ 0.0f, 0.0f, 1.0f, 1.0f} },
 		{ {-0.5f,  0.5f, -0.5f},{ 0.0f, 1.0f, 0.0f, 1.0f} },
 				
-	// back face
+		// back face
 		{ { 0.5f,  0.5f,  0.5f},{ 1.0f, 0.0f, 0.0f, 1.0f} },
 		{ {-0.5f, -0.5f,  0.5f},{ 1.0f, 0.0f, 1.0f, 1.0f} },
 		{ { 0.5f, -0.5f,  0.5f},{ 0.0f, 0.0f, 1.0f, 1.0f} },
@@ -281,7 +282,7 @@ void Renderer::SetupVertexBuffer() {
 		{ {-0.5f, -0.5f,  0.5f},{ 0.0f, 1.0f, 0.0f, 1.0f} },
 	};
 
-	uint16_t indices[] = {
+	DWORD indices[] = {
 		// ffront face
 		0, 1, 2, // first triangle
 		0, 3, 1, // second triangle
@@ -308,7 +309,7 @@ void Renderer::SetupVertexBuffer() {
 	};
 
 
-	indexCount = sizeof(indices) / sizeof(uint16_t);
+	indexCount = sizeof(indices) / sizeof(DWORD);
 
 	const UINT vertexBufferSize = sizeof(cubeVertices);
 
@@ -448,7 +449,7 @@ void Renderer::SetupVertexBuffer() {
 	m_vertexBufferView.SizeInBytes = vertexBufferSize;
 
 	m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-	m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_indexBufferView.SizeInBytes = indexBufferSize;
 }
 
