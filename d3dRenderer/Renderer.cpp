@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "Renderer.h"
 #include <iostream>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 Renderer::Renderer(UINT width, UINT height, std::wstring name) :
 	DXSample(width, height, name),
@@ -308,6 +311,34 @@ void Renderer::SetupVertexBuffer() {
 		20, 23, 21, // second triangle
 	};
 
+	std::vector<Vertex> vertices;
+
+	Assimp::Importer;
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile("d3dRenderer/cube.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
+	aiMesh* mesh = scene->mMeshes[0];
+	// Loop through vertices
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+		Vertex vertex;
+		vertex.position.x = mesh->mVertices[i].x;
+		vertex.position.y = mesh->mVertices[i].y;
+		vertex.position.z = mesh->mVertices[i].z;
+
+		if (mesh->mTextureCoords[0]) {
+			vertex.color.x = mesh->mNormals[i].x;
+			vertex.color.y = mesh->mNormals[i].y;
+			vertex.color.z = mesh->mNormals[i].z;
+			vertex.color.w = 1;
+		}
+		else {
+			vertex.color.x = 1;
+			vertex.color.y = 1;
+			vertex.color.z = 1;
+			vertex.color.w = 1;
+		}
+
+		vertices.push_back(vertex);
+	}
 
 	indexCount = sizeof(indices) / sizeof(DWORD);
 
