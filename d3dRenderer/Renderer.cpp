@@ -199,16 +199,30 @@ void Renderer::SetupShaders() {
 	// ... set other stencil settings if enabled
 
 
+	D3D12_RASTERIZER_DESC rasterizerDesc = {};
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;  // Also can be D3D12_FILL_MODE_WIREFRAME
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;   // Culling back faces. Other options: D3D12_CULL_MODE_FRONT, D3D12_CULL_MODE_NONE
+	rasterizerDesc.FrontCounterClockwise = FALSE;     // Specifies whether triangles are front-facing if counter-clockwise
+	rasterizerDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+	rasterizerDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+	rasterizerDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+	rasterizerDesc.DepthClipEnable = TRUE;
+	rasterizerDesc.MultisampleEnable = FALSE;
+	rasterizerDesc.AntialiasedLineEnable = FALSE;
+	rasterizerDesc.ForcedSampleCount = 0;
+	rasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = depthStencilDesc;
 	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 	psoDesc.pRootSignature = m_rootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 	psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	psoDesc.DepthStencilState.DepthEnable = FALSE;
+	psoDesc.DepthStencilState.DepthEnable = TRUE;
 	psoDesc.DepthStencilState.StencilEnable = FALSE;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -216,7 +230,9 @@ void Renderer::SetupShaders() {
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleMask = 0xffffffff;
+	psoDesc.RasterizerState = rasterizerDesc;
 	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+
 }
 
 void Renderer::SetupRootSignature() {
@@ -249,100 +265,71 @@ void Renderer::SetupRootSignature() {
 	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 }
 
+
 void Renderer::SetupVertexBuffer() {
 
-	Vertex cubeVertices[] = {
-		// front face
-		{ { -0.5f,  0.5f, -0.5f}, { 1.0f, 0.0f, 0.0f, 1.0f } },
-		{ {0.5f, -0.5f, -0.5f}, { 0.0f, 1.0f, 0.0f, 1.0f } },
-		{ {-0.5f, -0.5f, -0.5f}, { 0.0f, 0.0f, 1.0f, 1.0f } },
-		{ { 0.5f,  0.5f, -0.5f}, { 1.0f, 1.0f, 0.0f, 1.0f } },
-		// right side face
-		{ { 0.5f, -0.5f, -0.5f}, { 1.0f, 0.5f, 0.0f, 1.0f } },
-		{ { 0.5f,  0.5f,  0.5f}, { 0.0f, 1.0f, 1.0f, 1.0f } },
-		{ { 0.5f, -0.5f,  0.5f}, { 1.0f, 0.0f, 1.0f, 1.0f } },
-		{ { 0.5f,  0.5f, -0.5f}, { 0.5f, 0.0f, 0.5f, 1.0f } },
-		// left side face
-		{ {-0.5f,  0.5f,  0.5f}, { 0.5f, 0.5f, 0.0f, 1.0f } },
-		{ {-0.5f, -0.5f, -0.5f}, { 0.0f, 0.5f, 0.5f, 1.0f } },
-		{ {-0.5f, -0.5f,  0.5f}, { 0.5f, 0.0f, 1.0f, 1.0f } },
-		{ {-0.5f,  0.5f, -0.5f}, { 1.0f, 1.0f, 1.0f, 1.0f } },
-		// back face
-		{ { 0.5f,  0.5f,  0.5f}, { 0.0f, 0.0f, 0.0f, 1.0f } },
-		{ {-0.5f, -0.5f,  0.5f}, { 0.6f, 0.2f, 0.2f, 1.0f } },
-		{ { 0.5f, -0.5f,  0.5f}, { 0.2f, 0.6f, 0.2f, 1.0f } },
-		{ {-0.5f,  0.5f,  0.5f}, { 0.2f, 0.2f, 0.6f, 1.0f } },
-		// top face
-		{ {-0.5f,  0.5f, -0.5f}, { 0.8f, 0.1f, 0.3f, 1.0f } },
-		{ {0.5f,  0.5f,  0.5f},  { 0.1f, 0.8f, 0.1f, 1.0f } },
-		{ {0.5f,  0.5f, -0.5f},  { 0.1f, 0.3f, 0.8f, 1.0f } },
-		{ {-0.5f,  0.5f,  0.5f}, { 0.9f, 0.9f, 0.1f, 1.0f } },
-		// bottom face	
-		{ { 0.5f, -0.5f,  0.5f}, { 0.9f, 0.1f, 0.9f, 1.0f } },
-		{ {-0.5f, -0.5f, -0.5f}, { 0.1f, 0.9f, 0.9f, 1.0f } },
-		{ { 0.5f, -0.5f, -0.5f}, { 0.3f, 0.3f, 0.3f, 1.0f } },
-		{ {-0.5f, -0.5f,  0.5f}, { 0.7f, 0.7f, 0.7f, 1.0f } },
-	};
-
-
-	DWORD indices[] = {
-		// ffront face
-		0, 1, 2, // first triangle
-		0, 3, 1, // second triangle
-
-		// left face
-		4, 5, 6, // first triangle
-		4, 7, 5, // second triangle
-
-		// right face
-		8, 9, 10, // first triangle
-		8, 11, 9, // second triangle
-
-		// back face
-		12, 13, 14, // first triangle
-		12, 15, 13, // second triangle
-
-		// top face
-		16, 17, 18, // first triangle
-		16, 19, 17, // second triangle
-
-		// bottom face
-		20, 21, 22, // first triangle
-		20, 23, 21, // second triangle
-	};
-
-	std::vector<Vertex> vertices;
+	UINT currentIndexOffset = 0;
+	UINT currentVertexOffset = 0;
 
 	Assimp::Importer;
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile("d3dRenderer/cube.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
-	aiMesh* mesh = scene->mMeshes[0];
+	const aiScene* scene = importer.ReadFile("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
+	//aiMesh* mesh = scene->mMeshes[0];
 	// Loop through vertices
-	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-		Vertex vertex;
-		vertex.position.x = mesh->mVertices[i].x;
-		vertex.position.y = mesh->mVertices[i].y;
-		vertex.position.z = mesh->mVertices[i].z;
+	for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
+		aiMesh* mesh = scene->mMeshes[m];
+		SubMesh subMesh;
 
-		if (mesh->mTextureCoords[0]) {
-			vertex.color.x = mesh->mNormals[i].x;
-			vertex.color.y = mesh->mNormals[i].y;
-			vertex.color.z = mesh->mNormals[i].z;
-			vertex.color.w = 1;
-		}
-		else {
-			vertex.color.x = 1;
-			vertex.color.y = 1;
-			vertex.color.z = 1;
-			vertex.color.w = 1;
+		for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+			Vertex vertex;
+			vertex.position.x = mesh->mVertices[i].x;
+			vertex.position.y = mesh->mVertices[i].y;
+			vertex.position.z = mesh->mVertices[i].z;
+
+			if (mesh->mTextureCoords[0]) {
+				vertex.color.x = mesh->mNormals[i].x;
+				vertex.color.y = mesh->mNormals[i].y;
+				vertex.color.z = mesh->mNormals[i].z;
+				vertex.color.w = 1;
+			}
+			else {
+				vertex.color.x = 1;
+				vertex.color.y = 1;
+				vertex.color.z = 1;
+				vertex.color.w = 1;
+			}
+			allVertices.push_back(vertex);
 		}
 
-		vertices.push_back(vertex);
+		for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+			aiFace face = mesh->mFaces[i];
+
+			// Assimp should triangulate the faces when the aiProcess_Triangulate flag is used
+			// So each face should have exactly 3 indices
+			if (face.mNumIndices == 3) {
+				FaceIndices faceIndices;
+				faceIndices.a = face.mIndices[0];
+				faceIndices.b = face.mIndices[1];
+				faceIndices.c = face.mIndices[2];
+
+				allFaces.push_back(faceIndices);
+			}
+		}
+
+		subMesh.indexCount = mesh->mNumFaces * 3;
+		subMesh.startIndexLocation = currentIndexOffset;
+		subMesh.baseVertexLocation = currentVertexOffset;
+
+		subMeshes.push_back(subMesh);
+
+		// Update offsets for next submesh
+		currentIndexOffset += subMesh.indexCount;
+		currentVertexOffset += mesh->mNumVertices;
 	}
 
-	indexCount = sizeof(indices) / sizeof(DWORD);
 
-	const UINT vertexBufferSize = sizeof(cubeVertices);
+
+	const UINT vertexBufferSize = static_cast<UINT>(allVertices.size() * sizeof(Vertex));
 
 
 	m_device->CreateCommittedResource(
@@ -367,7 +354,7 @@ void Renderer::SetupVertexBuffer() {
 
 	// store vertex buffer in upload heap
 	D3D12_SUBRESOURCE_DATA vertexData = {};
-	vertexData.pData = reinterpret_cast<BYTE*>(cubeVertices); // pointer to our vertex array
+	vertexData.pData = reinterpret_cast<BYTE*>(allVertices.data()); // pointer to our vertex array
 	vertexData.RowPitch = vertexBufferSize; // size of all our triangle vertex data
 	vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
 
@@ -377,7 +364,7 @@ void Renderer::SetupVertexBuffer() {
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
 
-	const UINT indexBufferSize = sizeof(indices);
+	const UINT indexBufferSize = static_cast<UINT>(allFaces.size() * 3 * sizeof(DWORD));
 
 	ThrowIfFailed(m_device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -403,28 +390,28 @@ void Renderer::SetupVertexBuffer() {
 
 	// store vertex buffer in upload heap
 	D3D12_SUBRESOURCE_DATA indexData = {};
-	indexData.pData = reinterpret_cast<BYTE*>(indices); // pointer to our vertex array
+	indexData.pData = reinterpret_cast<BYTE*>(allFaces.data()); // pointer to our vertex array
 	indexData.RowPitch = indexBufferSize; // size of all our triangle vertex data
 	indexData.SlicePitch = indexBufferSize; // also the size of our triangle vertex data
 
 	UpdateSubresources(m_commandList.Get(), m_indexBuffer.Get(), indexBufferUploadHeap, 0, 0, 1, &indexData);
 
 	// transition the vertex buffer data from copy destination state to vertex buffer state
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
 
 	//MATH
 	XMMATRIX modelMatrix = XMMatrixIdentity();
 	XMMATRIX translationMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
 	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(10.0f, 10.0f, 0.0f);
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0.0f, 0.0f, 0.0f);
 	modelMatrix = modelMatrix * rotationMatrix;
 	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
 	modelMatrix = modelMatrix * scaleMatrix;
 
 
 	XMMATRIX viewMatrix = XMMatrixLookAtLH(
-		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),  // eyePosition
+		XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f),  // eyePosition
 		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),   // focalPoint
 		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // upDirection
 	);
@@ -538,7 +525,10 @@ void Renderer::PopulateCommandList() {
 	m_commandList->IASetIndexBuffer(&m_indexBufferView);
 	//m_commandList->DrawInstanced(6, 1, 0, 0);
 
-	m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+	//m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+	for (const auto& subMesh : subMeshes) {
+		m_commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
+	}
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	
 	ThrowIfFailed(m_commandList->Close());

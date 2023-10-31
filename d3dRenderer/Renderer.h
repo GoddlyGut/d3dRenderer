@@ -25,6 +25,10 @@ private:
 		XMFLOAT4 color;
 	};
 
+	struct FaceIndices {
+		unsigned int a, b, c;
+	};
+
 	struct MVPMatrix
 	{
 		XMMATRIX model;
@@ -61,6 +65,16 @@ private:
 	HANDLE m_fenceEvent;
 	ComPtr<ID3D12Fence> m_fence;
 	UINT64 m_fenceValue;
+
+	struct SubMesh {
+		UINT indexCount;
+		UINT startIndexLocation;
+		INT baseVertexLocation;
+	};
+
+	std::vector<SubMesh> subMeshes;
+	std::vector<FaceIndices> allFaces;
+	std::vector<Vertex> allVertices;
 
 
 	void LoadPipeline();
