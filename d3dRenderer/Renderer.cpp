@@ -5,6 +5,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 Renderer::Renderer(UINT width, UINT height, std::wstring name) :
 	DXSample(width, height, name),
 	m_frameIndex(0),
@@ -404,7 +407,7 @@ void Renderer::SetupVertexBuffer() {
 	XMMATRIX modelMatrix = XMMatrixIdentity();
 	XMMATRIX translationMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
 	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0.0f, 0.0f, 0.0f);
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0.0f, 180.f * M_PI / 180.f, 0.0f);
 	modelMatrix = modelMatrix * rotationMatrix;
 	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
 	modelMatrix = modelMatrix * scaleMatrix;
