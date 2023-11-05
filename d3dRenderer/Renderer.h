@@ -22,7 +22,7 @@ private:
 
 	struct Vertex {
 		XMFLOAT3 position;
-		XMFLOAT4 color;
+		XMFLOAT2 texCoord;
 	};
 
 	struct FaceIndices {
@@ -60,6 +60,10 @@ private:
 
 	ComPtr<ID3D12Resource> m_indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
+	
+	ComPtr<ID3D12Resource> m_textureBuffer;
+	ComPtr< ID3D12DescriptorHeap> m_mainDescriptorHeap;
+	ComPtr<ID3D12Resource> m_textureBufferUploadHeap;
 
 	UINT m_frameIndex;
 	HANDLE m_fenceEvent;
