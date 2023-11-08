@@ -141,9 +141,14 @@ void Renderer::SetupShaders() {
 
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
+	//D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
+	//{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	//{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	//};
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -235,6 +240,7 @@ void Renderer::SetupShaders() {
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleMask = 0xffffffff;
 	psoDesc.RasterizerState = rasterizerDesc;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
 }
@@ -286,7 +292,7 @@ void Renderer::SetupRootSignature() {
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.NumParameters = _countof(rootParameters);
 	rootSignatureDesc.pParameters = rootParameters;
-	rootSignatureDesc.NumStaticSamplers = 0;
+	rootSignatureDesc.NumStaticSamplers = 1;
 	rootSignatureDesc.pStaticSamplers = nullptr;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
@@ -313,8 +319,6 @@ void Renderer::SetupVertexBuffer() {
 	Assimp::Importer;
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
-	//aiMesh* mesh = scene->mMeshes[0];
-	// Loop through vertices
 
 	// Load the image from file
 	D3D12_RESOURCE_DESC textureDesc;
@@ -332,22 +336,26 @@ void Renderer::SetupVertexBuffer() {
 			vertex.position.y = mesh->mVertices[i].y;
 			vertex.position.z = mesh->mVertices[i].z;
 
+			if (mesh->mTextureCoords[0]) {
+				vertex.texCoord.x = mesh->mTextureCoords[0][i].x;
+				vertex.texCoord.y = mesh->mTextureCoords[0][i].y;
+			}
+			else {
+				vertex.texCoord.x = 1;
+				vertex.texCoord.y = 1;
+			}
 
-			vertex.texCoord.x = mesh->mTextureCoords[0][i].x;
-			vertex.texCoord.y = mesh->mTextureCoords[0][i].y;
 
-			/*if (mesh->mTextureCoords[0]) {
+			if (mesh->mTextureCoords[0]) {
 				vertex.color.x = mesh->mNormals[i].x;
 				vertex.color.y = mesh->mNormals[i].y;
 				vertex.color.z = mesh->mNormals[i].z;
-				vertex.color.w = 1;
 			}
 			else {
 				vertex.color.x = 1;
 				vertex.color.y = 1;
 				vertex.color.z = 1;
-				vertex.color.w = 1;
-			}*/
+			}
 			allVertices.push_back(vertex);
 		}
 
@@ -591,6 +599,8 @@ void Renderer::LoadAssets() {
 
 void Renderer::OnUpdate()
 {
+
+
 }
 
 void Renderer::OnRender() {

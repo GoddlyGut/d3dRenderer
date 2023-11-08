@@ -22,6 +22,7 @@ private:
 
 	struct Vertex {
 		XMFLOAT3 position;
+		XMFLOAT3 color;
 		XMFLOAT2 texCoord;
 	};
 
@@ -69,6 +70,8 @@ private:
 	HANDLE m_fenceEvent;
 	ComPtr<ID3D12Fence> m_fence;
 	UINT64 m_fenceValue;
+
+	float m_previousTime = 0.0f;
 
 	struct SubMesh {
 		UINT indexCount;

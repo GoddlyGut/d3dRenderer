@@ -1,12 +1,14 @@
 struct VS_INPUT
 {
     float4 position : POSITION;
+    float4 color : COLOR;
     float4 uv : TEXCOORD;
 };
 
 struct VS_OUTPUT
 {
     float4 position : SV_POSITION;
+    float4 color : COLOR;
     float4 uv : TEXCOORD;
 };
 
@@ -26,16 +28,13 @@ VS_OUTPUT VSMain(VS_INPUT input)
     VS_OUTPUT result;
 
     // Apply the model, view, and projection matrices to transform the vertex position
-     float4 worldPosition = mul(input.position, model);
+    float4 worldPosition = mul(input.position, model);
     worldPosition.z = -worldPosition.z;
-     float4 viewPosition = mul(worldPosition, view);
-     result.position = mul(viewPosition, projection);
-
+    float4 viewPosition = mul(worldPosition, view);
+    result.position = mul(viewPosition, projection);
 
     result.uv = input.uv;
-
-    //result.position = position;
-    //result.color = input.color;
+    result.color = input.color;
 
     return result;
 }
