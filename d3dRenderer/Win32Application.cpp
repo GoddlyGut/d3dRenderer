@@ -43,6 +43,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow) 
 
 	ShowWindow(m_hwnd, nCmdShow);
 
+
 	// Main sample loop.
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
@@ -95,6 +96,8 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 		{
 			pSample->OnUpdate();
 			pSample->OnRender();
+			
+			
 		}
 		return 0;
 

@@ -5,7 +5,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "Utils.h"
-
+#include "Time.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -511,61 +511,14 @@ void Renderer::SetupVertexBuffer() {
 	m_device->CreateShaderResourceView(m_textureBuffer.Get(), &srvDesc, m_mainDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 
-
-
-
-	//MATH
-	XMMATRIX modelMatrix = XMMatrixIdentity();
-	XMMATRIX translationMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(0.0f, 0.f * M_PI / 180.f, 0.0f);
-	modelMatrix = modelMatrix * rotationMatrix;
-	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	modelMatrix = modelMatrix * scaleMatrix;
-
-
-	XMMATRIX viewMatrix = XMMatrixLookAtLH(
-		XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f),  // eyePosition
-		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),   // focalPoint
-		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // upDirection
-	);
-
-
-	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,           // Field of View in radians
-		m_aspectRatio,         // Aspect ratio (width/height)
-		0.1f,          // Near clipping plane
-		1000.0f            // Far clipping plane
-	);
-
-
-
-	XMMATRIX mvpMatrix = modelMatrix * viewMatrix * projectionMatrix;
-
-
 	ThrowIfFailed(m_device->CreateCommittedResource(
-	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(MVPMatrix)),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_constantBuffer)));
 
-	void* pMappedData = nullptr;
-	D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU.
-	m_constantBuffer->Map(0, &readRange, &pMappedData);
-
-	// Create the MVP matrices and fill a temporary structure.
-	MVPMatrix mvpMatrices;
-	mvpMatrices.model = XMMatrixTranspose(modelMatrix);
-	mvpMatrices.view = XMMatrixTranspose(viewMatrix);
-	mvpMatrices.projection = XMMatrixTranspose(projectionMatrix);
-
-	// Copy the matrices to the constant buffer.
-	memcpy(pMappedData, &mvpMatrices, sizeof(mvpMatrices));
-
-	// Unmap the constant buffer.
-	m_constantBuffer->Unmap(0, nullptr);
 
 
 	m_commandList->Close();
@@ -574,6 +527,9 @@ void Renderer::SetupVertexBuffer() {
 
 	m_fenceValue++;
 	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
+
+
+
 	delete imageData;
 
 
@@ -599,8 +555,7 @@ void Renderer::LoadAssets() {
 
 void Renderer::OnUpdate()
 {
-
-
+	m_rotationAngleY += 1.0f;
 }
 
 void Renderer::OnRender() {
@@ -654,6 +609,54 @@ void Renderer::PopulateCommandList() {
 	}
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	
+
+
+
+	//MATH
+	XMMATRIX modelMatrix = XMMatrixIdentity();
+	XMMATRIX translationMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(m_rotationAngleX, m_rotationAngleY * M_PI / 180.f, m_rotationAngleZ);
+	modelMatrix = modelMatrix * rotationMatrix;
+	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	modelMatrix = modelMatrix * scaleMatrix;
+
+
+	XMMATRIX viewMatrix = XMMatrixLookAtLH(
+		XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f),  // eyePosition
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),   // focalPoint
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // upDirection
+	);
+
+
+	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(
+		XM_PIDIV4,           // Field of View in radians
+		m_aspectRatio,         // Aspect ratio (width/height)
+		0.1f,          // Near clipping plane
+		1000.0f            // Far clipping plane
+	);
+
+
+
+	XMMATRIX mvpMatrix = modelMatrix * viewMatrix * projectionMatrix;
+
+
+	void* pMappedData = nullptr;
+	D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU.
+	m_constantBuffer->Map(0, &readRange, &pMappedData);
+
+	// Create the MVP matrices and fill a temporary structure.
+	MVPMatrix mvpMatrices;
+	mvpMatrices.model = XMMatrixTranspose(modelMatrix);
+	mvpMatrices.view = XMMatrixTranspose(viewMatrix);
+	mvpMatrices.projection = XMMatrixTranspose(projectionMatrix);
+
+	// Copy the matrices to the constant buffer.
+	memcpy(pMappedData, &mvpMatrices, sizeof(mvpMatrices));
+
+	// Unmap the constant buffer.
+	m_constantBuffer->Unmap(0, nullptr);
+
 	ThrowIfFailed(m_commandList->Close());
 }
 

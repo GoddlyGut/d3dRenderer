@@ -73,6 +73,8 @@ private:
 
 	float m_previousTime = 0.0f;
 
+	float m_rotationAngleX, m_rotationAngleY, m_rotationAngleZ;
+
 	struct SubMesh {
 		UINT indexCount;
 		UINT startIndexLocation;
