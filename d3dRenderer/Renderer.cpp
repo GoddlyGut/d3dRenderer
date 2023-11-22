@@ -16,7 +16,6 @@ Renderer::Renderer(UINT width, UINT height, std::wstring name) :
 	m_rtvDescriptorSize(0) 
 {
 	time = Time();
-	time.lastTime = std::chrono::high_resolution_clock::now();
 
 }
 
@@ -556,14 +555,11 @@ void Renderer::LoadAssets() {
 void Renderer::OnUpdate()
 {
 	//delta time
-	time.currentTime = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsed = time.currentTime - time.lastTime;
-	time.deltaTime = elapsed.count();
-	time.lastTime = time.currentTime;
+	time.Update();
 
 	//rotation speeds
 	float rotationSpeed = 60.0f; // degrees per second
-	m_rotationAngleY += rotationSpeed * time.deltaTime;
+	m_rotationAngleY += rotationSpeed * time.GetDeltaTime();
 }
 
 void Renderer::OnRender() {
@@ -610,9 +606,7 @@ void Renderer::PopulateCommandList() {
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	m_commandList->IASetIndexBuffer(&m_indexBufferView);
-	//m_commandList->DrawInstanced(6, 1, 0, 0);
 
-	//m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 	for (const auto& subMesh : subMeshes) {
 		m_commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
 	}
