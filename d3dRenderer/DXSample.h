@@ -32,6 +32,7 @@ public:
     // Accessors.
     UINT GetWidth() const { return m_width; }
     UINT GetHeight() const { return m_height; }
+    void UpdateAspectRatio(int width, int height);
     const WCHAR* GetTitle() const { return m_title.c_str(); }
 
     void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);

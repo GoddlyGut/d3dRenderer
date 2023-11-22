@@ -1,15 +1,16 @@
 #pragma once
 
-#include <windows.h>
+#include <iostream>
+#include <chrono>
 
 class Time
 {
 public:
-	LARGE_INTEGER frequency;        // Counts per second
-	LARGE_INTEGER currentTime;      // Current time
-	LARGE_INTEGER previousTime;     // Previous time
+
+	float m_previousTime = 0.0f;
+	std::chrono::high_resolution_clock::time_point lastTime;
+	std::chrono::high_resolution_clock::time_point currentTime;
 	double deltaTime;
-	Time();
-	void LoopCall();
 };
+
 

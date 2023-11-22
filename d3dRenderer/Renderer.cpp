@@ -5,7 +5,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "Utils.h"
-#include "Time.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -16,6 +15,8 @@ Renderer::Renderer(UINT width, UINT height, std::wstring name) :
 	m_scissorRect(0, 0, static_cast<float>(width), static_cast<float>(height)),
 	m_rtvDescriptorSize(0) 
 {
+	time = Time();
+	time.lastTime = std::chrono::high_resolution_clock::now();
 
 }
 
@@ -397,7 +398,6 @@ void Renderer::SetupVertexBuffer() {
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&m_vertexBuffer));
-
 	m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
 
 	ID3D12Resource* vertexBufferUploadHeap;
@@ -555,10 +555,20 @@ void Renderer::LoadAssets() {
 
 void Renderer::OnUpdate()
 {
-	m_rotationAngleY += 1.0f;
+	//delta time
+	time.currentTime = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed = time.currentTime - time.lastTime;
+	time.deltaTime = elapsed.count();
+	time.lastTime = time.currentTime;
+
+	//rotation speeds
+	float rotationSpeed = 60.0f; // degrees per second
+	m_rotationAngleY += rotationSpeed * time.deltaTime;
 }
 
 void Renderer::OnRender() {
+	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
+
 	PopulateCommandList();
 
 	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
@@ -576,7 +586,6 @@ void Renderer::OnDestroy() {
 }
 
 void Renderer::PopulateCommandList() {
-	ThrowIfFailed(m_commandAllocator->Reset());
 
 	ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 	m_commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);

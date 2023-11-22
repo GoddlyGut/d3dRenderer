@@ -1,6 +1,10 @@
 #pragma once
 
 #include "DXSample.h"
+#include "Time.h"
+
+#include <iostream>
+
 
 using namespace DirectX;
 
@@ -71,7 +75,8 @@ private:
 	ComPtr<ID3D12Fence> m_fence;
 	UINT64 m_fenceValue;
 
-	float m_previousTime = 0.0f;
+	Time time;
+
 
 	float m_rotationAngleX, m_rotationAngleY, m_rotationAngleZ;
 

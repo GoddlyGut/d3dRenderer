@@ -112,6 +112,13 @@ void DXSample::SetCustomWindowText(LPCWSTR text)
     SetWindowText(Win32Application::GetHwnd(), windowText.c_str());
 }
 
+void DXSample::UpdateAspectRatio(int width, int height) {
+    m_width = width;
+    m_height = height;
+    m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+}
+
+
 // Helper function for parsing any supplied command line args.
 _Use_decl_annotations_
 void DXSample::ParseCommandLineArgs(WCHAR* argv[], int argc)

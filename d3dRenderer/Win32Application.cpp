@@ -69,6 +69,15 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 
 	switch (message)
 	{
+	case WM_SIZE:
+	{
+		int width = LOWORD(lParam);  // New width of the window
+		int height = HIWORD(lParam); // New height of the window
+
+		pSample->UpdateAspectRatio(width, height);
+
+		break;
+	}
 	case WM_CREATE:
 	{
 		// Save the DXSample* passed in to CreateWindow.
