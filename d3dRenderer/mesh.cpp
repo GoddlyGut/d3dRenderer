@@ -1,6 +1,6 @@
 #include "Mesh.h"
 
-Mesh::Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device> device) {
+Mesh::Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device>& device) {
 	this->texturePath = texturePath;
 	this->device = device;
 

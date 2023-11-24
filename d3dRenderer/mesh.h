@@ -38,7 +38,7 @@ public:
 	};
 
 
-	Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device> device);
+	Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device>& device);
 
 	std::vector<Vertex> vertices;
 	std::vector<FaceIndices> indices;
