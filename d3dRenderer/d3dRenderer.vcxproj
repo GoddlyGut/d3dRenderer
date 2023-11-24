@@ -108,6 +108,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="mesh.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DXSample.h" />
@@ -118,6 +119,7 @@
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="main.cpp" />
