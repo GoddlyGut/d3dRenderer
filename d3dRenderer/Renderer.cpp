@@ -1,10 +1,6 @@
-#include "stdafx.h"
 #include "Renderer.h"
-#include <iostream>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include "Utils.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -13,9 +9,9 @@ Renderer::Renderer(UINT width, UINT height, std::wstring name) :
 	m_frameIndex(0),
 	m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
 	m_scissorRect(0, 0, static_cast<float>(width), static_cast<float>(height)),
-	m_rtvDescriptorSize(0) 
+	m_rtvDescriptorSize(0),
+	time(Time())
 {
-	time = Time();
 
 }
 
@@ -112,9 +108,7 @@ void Renderer::LoadPipeline() {
 		}
 	}
 
-	ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
 
-	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
 }
 
 void Renderer::SetupFence() {
@@ -246,7 +240,7 @@ void Renderer::SetupShaders() {
 }
 
 void Renderer::SetupRootSignature() {
-	
+
 	D3D12_DESCRIPTOR_RANGE descriptorTableRanges[1];
 	descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorTableRanges[0].NumDescriptors = 1;
@@ -313,232 +307,24 @@ void Renderer::SetupRootSignature() {
 
 void Renderer::SetupVertexBuffer() {
 
-	UINT currentIndexOffset = 0;
-	UINT currentVertexOffset = 0;
+	LPCWSTR texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/diffuse.jpg";
 
-	Assimp::Importer;
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
+	Mesh mesh = Mesh(texturePath, m_device);
 
-	// Load the image from file
-	D3D12_RESOURCE_DESC textureDesc;
-	int imageBytesPerRow;
-	BYTE* imageData;
-	int imageSize = Utils::LoadImageDataFromFile(&imageData, textureDesc, L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/diffuse.jpg", imageBytesPerRow);
-
-	for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
-		aiMesh* mesh = scene->mMeshes[m];
-		SubMesh subMesh;
-
-		for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-			Vertex vertex;
-			vertex.position.x = mesh->mVertices[i].x;
-			vertex.position.y = mesh->mVertices[i].y;
-			vertex.position.z = mesh->mVertices[i].z;
-
-			if (mesh->mTextureCoords[0]) {
-				vertex.texCoord.x = mesh->mTextureCoords[0][i].x;
-				vertex.texCoord.y = mesh->mTextureCoords[0][i].y;
-			}
-			else {
-				vertex.texCoord.x = 1;
-				vertex.texCoord.y = 1;
-			}
+	meshes.push_back(mesh);
 
 
-			if (mesh->mTextureCoords[0]) {
-				vertex.color.x = mesh->mNormals[i].x;
-				vertex.color.y = mesh->mNormals[i].y;
-				vertex.color.z = mesh->mNormals[i].z;
-			}
-			else {
-				vertex.color.x = 1;
-				vertex.color.y = 1;
-				vertex.color.z = 1;
-			}
-			allVertices.push_back(vertex);
-		}
+	for (const auto& mesh : meshes) {
+		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-		for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-			aiFace face = mesh->mFaces[i];
-
-			// Assimp should triangulate the faces when the aiProcess_Triangulate flag is used
-			// So each face should have exactly 3 indices
-			if (face.mNumIndices == 3) {
-				FaceIndices faceIndices;
-				faceIndices.a = face.mIndices[0];
-				faceIndices.b = face.mIndices[1];
-				faceIndices.c = face.mIndices[2];
-
-				allFaces.push_back(faceIndices);
-			}
-		}
-
-		subMesh.indexCount = mesh->mNumFaces * 3;
-		subMesh.startIndexLocation = currentIndexOffset;
-		subMesh.baseVertexLocation = currentVertexOffset;
-
-		subMeshes.push_back(subMesh);
-
-		// Update offsets for next submesh
-		currentIndexOffset += subMesh.indexCount;
-		currentVertexOffset += mesh->mNumVertices;
+		m_fenceValue++;
+		m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
 	}
 
 
 
-	const UINT vertexBufferSize = static_cast<UINT>(allVertices.size() * sizeof(Vertex));
 
-
-	m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&m_vertexBuffer));
-	m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
-
-	ID3D12Resource* vertexBufferUploadHeap;
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&vertexBufferUploadHeap)));
-	vertexBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
-
-	// store vertex buffer in upload heap
-	D3D12_SUBRESOURCE_DATA vertexData = {};
-	vertexData.pData = reinterpret_cast<BYTE*>(allVertices.data()); // pointer to our vertex array
-	vertexData.RowPitch = vertexBufferSize; // size of all our triangle vertex data
-	vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
-
-	UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexBufferUploadHeap, 0, 0, 1, &vertexData);
-
-	// transition the vertex buffer data from copy destination state to vertex buffer state
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-
-	const UINT indexBufferSize = static_cast<UINT>(allFaces.size() * 3 * sizeof(DWORD));
-
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_indexBuffer)
-	));
-
-	m_indexBuffer->SetName(L"Index Buffer Resource Heap");
-
-
-	ID3D12Resource* indexBufferUploadHeap;
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&indexBufferUploadHeap)));
-	indexBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
-
-	// store vertex buffer in upload heap
-	D3D12_SUBRESOURCE_DATA indexData = {};
-	indexData.pData = reinterpret_cast<BYTE*>(allFaces.data()); // pointer to our vertex array
-	indexData.RowPitch = indexBufferSize; // size of all our triangle vertex data
-	indexData.SlicePitch = indexBufferSize; // also the size of our triangle vertex data
-
-	UpdateSubresources(m_commandList.Get(), m_indexBuffer.Get(), indexBufferUploadHeap, 0, 0, 1, &indexData);
-
-	// transition the vertex buffer data from copy destination state to vertex buffer state
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
-
-
-
-	ThrowIfFailed(m_device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&textureDesc, // the description of our texture
-		D3D12_RESOURCE_STATE_COPY_DEST, // We will copy the texture from the upload heap to here, so we start it out in a copy dest state
-		nullptr, // used for render targets and depth/stencil buffers
-		IID_PPV_ARGS(&m_textureBuffer)));
-
-	m_textureBuffer->SetName(L"Texture Buffer Resource Heap");
-	UINT64 textureUploadBufferSize;
-	// this function gets the size an upload buffer needs to be to upload a texture to the gpu.
-	// each row must be 256 byte aligned except for the last row, which can just be the size in bytes of the row
-	// eg. textureUploadBufferSize = ((((width * numBytesPerPixel) + 255) & ~255) * (height - 1)) + (width * numBytesPerPixel);
-	//textureUploadBufferSize = (((imageBytesPerRow + 255) & ~255) * (textureDesc.Height - 1)) + imageBytesPerRow;
-	m_device->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
-
-	// now we create an upload heap to upload our texture to the GPU
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(textureUploadBufferSize), // resource description for a buffer (storing the image data in this heap just to copy to the default heap)
-		D3D12_RESOURCE_STATE_GENERIC_READ, // We will copy the contents from this heap to the default heap above
-		nullptr,
-		IID_PPV_ARGS(&m_textureBufferUploadHeap)));
-
-	m_textureBufferUploadHeap->SetName(L"Texture Buffer Upload Resource Heap");
-
-	// store vertex buffer in upload heap
-	D3D12_SUBRESOURCE_DATA textureData = {};
-	textureData.pData = &imageData[0]; // pointer to our image data
-	textureData.RowPitch = imageBytesPerRow; // size of all our triangle vertex data
-	textureData.SlicePitch = imageBytesPerRow * textureDesc.Height; // also the size of our triangle vertex data
-
-	// Now we copy the upload buffer contents to the default heap
-	UpdateSubresources(m_commandList.Get(), m_textureBuffer.Get(), m_textureBufferUploadHeap.Get(), 0, 0, 1, &textureData);
-
-	// transition the texture default heap to a pixel shader resource (we will be sampling from this heap in the pixel shader to get the color of pixels)
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_textureBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
-	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.NumDescriptors = 1;
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_mainDescriptorHeap)));
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = textureDesc.Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-	m_device->CreateShaderResourceView(m_textureBuffer.Get(), &srvDesc, m_mainDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(MVPMatrix)),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_constantBuffer)));
-
-
-
-	m_commandList->Close();
-	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	m_fenceValue++;
-	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
-
-
-
-	delete imageData;
-
-
-	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-	m_vertexBufferView.SizeInBytes = vertexBufferSize;
-
-	m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	m_indexBufferView.SizeInBytes = indexBufferSize;
 }
 
 void Renderer::LoadAssets() {
@@ -565,10 +351,14 @@ void Renderer::OnUpdate()
 void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
-	PopulateCommandList();
+	for (const auto& mesh : meshes) {
+		PopulateCommandList(mesh);
 
-	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	}
+
+
 
 	ThrowIfFailed(m_swapChain->Present(1, 0));
 
@@ -581,37 +371,38 @@ void Renderer::OnDestroy() {
 	CloseHandle(m_fenceEvent);
 }
 
-void Renderer::PopulateCommandList() {
+void Renderer::PopulateCommandList(Mesh mesh) {
 
-	ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
-	m_commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_mainDescriptorHeap.Get() };
-	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+	ThrowIfFailed(mesh.commandList->Reset(mesh.commandAllocator.Get(), m_pipelineState.Get()));
+	mesh.commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	mesh.commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
-	m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
-	m_commandList->RSSetViewports(1, &m_viewport);
-	m_commandList->RSSetScissorRects(1, &m_scissorRect);
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mesh.mainDescriptorHeap.Get() };
+	mesh.commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	mesh.commandList->SetGraphicsRootDescriptorTable(1, mesh.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+	mesh.commandList->SetGraphicsRootConstantBufferView(0, mesh.constantBuffer->GetGPUVirtualAddress());
+	mesh.commandList->RSSetViewports(1, &m_viewport);
+	mesh.commandList->RSSetScissorRects(1, &m_scissorRect);
+	mesh.commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-	m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
+	mesh.commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
 
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-	m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	m_commandList->IASetIndexBuffer(&m_indexBufferView);
+	mesh.commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	mesh.commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mesh.commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+	mesh.commandList->IASetIndexBuffer(&mesh.indexBufferView);
 
-	for (const auto& subMesh : subMeshes) {
-		m_commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
+	for (const auto& subMesh : mesh.subMeshes) {
+		mesh.commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
 	}
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-	
+	mesh.commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
 
 
 
@@ -646,7 +437,7 @@ void Renderer::PopulateCommandList() {
 
 	void* pMappedData = nullptr;
 	D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU.
-	m_constantBuffer->Map(0, &readRange, &pMappedData);
+	mesh.constantBuffer->Map(0, &readRange, &pMappedData);
 
 	// Create the MVP matrices and fill a temporary structure.
 	MVPMatrix mvpMatrices;
@@ -658,9 +449,9 @@ void Renderer::PopulateCommandList() {
 	memcpy(pMappedData, &mvpMatrices, sizeof(mvpMatrices));
 
 	// Unmap the constant buffer.
-	m_constantBuffer->Unmap(0, nullptr);
+	mesh.constantBuffer->Unmap(0, nullptr);
 
-	ThrowIfFailed(m_commandList->Close());
+	ThrowIfFailed(mesh.commandList->Close());
 }
 
 

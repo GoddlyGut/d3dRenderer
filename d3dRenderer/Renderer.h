@@ -1,9 +1,11 @@
 #pragma once
-
+#include "Mesh.h"
 #include "DXSample.h"
 #include "Time.h"
 
+
 #include <iostream>
+
 
 
 using namespace DirectX;
@@ -14,6 +16,9 @@ using Microsoft::WRL::ComPtr;
 class Renderer : public DXSample
 {
 public:
+
+
+
 	Renderer(UINT width, UINT height, std::wstring name);
 
 	virtual void OnInit();
@@ -42,33 +47,30 @@ private:
 	};
 
 
+	struct SubMesh {
+		UINT indexCount;
+		UINT startIndexLocation;
+		INT baseVertexLocation;
+	};
+
 	CD3DX12_VIEWPORT m_viewport;
 	CD3DX12_RECT m_scissorRect;
 	ComPtr<IDXGISwapChain3> m_swapChain;
 	ComPtr<ID3D12Device> m_device;
 	ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-	ComPtr<ID3D12Resource> m_constantBuffer;
-	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+
 	ComPtr<ID3D12CommandQueue> m_commandQueue;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	ComPtr<ID3D12PipelineState> m_pipelineState;
-	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	UINT m_rtvDescriptorSize;
 	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
 	UINT indexCount;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
-	ComPtr<ID3D12Resource> m_vertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
-	ComPtr<ID3D12Resource> m_indexBuffer;
-	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
-	
-	ComPtr<ID3D12Resource> m_textureBuffer;
-	ComPtr< ID3D12DescriptorHeap> m_mainDescriptorHeap;
-	ComPtr<ID3D12Resource> m_textureBufferUploadHeap;
+
 
 	UINT m_frameIndex;
 	HANDLE m_fenceEvent;
@@ -80,20 +82,14 @@ private:
 
 	float m_rotationAngleX, m_rotationAngleY, m_rotationAngleZ;
 
-	struct SubMesh {
-		UINT indexCount;
-		UINT startIndexLocation;
-		INT baseVertexLocation;
-	};
 
-	std::vector<SubMesh> subMeshes;
-	std::vector<FaceIndices> allFaces;
-	std::vector<Vertex> allVertices;
+	std::vector<Mesh> meshes;
+
 
 
 	void LoadPipeline();
 	void LoadAssets();
-	void PopulateCommandList();
+	void PopulateCommandList(Mesh mesh);
 	void WaitForPreviousFrame();
 
 	void SetupFence();
