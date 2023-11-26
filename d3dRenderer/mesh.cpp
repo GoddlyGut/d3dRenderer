@@ -1,32 +1,39 @@
 #include "Mesh.h"
 
-Mesh::Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device>& device) {
+Mesh::Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& device) {
+	this->meshPath = meshPath;
 	this->texturePath = texturePath;
 	this->device = device;
 
-	setupMesh();
+	SetupMesh();
 }
 
-void Mesh::setupMesh()
+void Mesh::SetupMesh()
 {
+	InitializeCommandObjects();
+	LoadMeshData();
+	CreateBuffers();
+	LoadTextureResources();
+	SetupTextureShader();
+	FinalizeSetup();
+
+}
+
+void Mesh::InitializeCommandObjects() {
 	ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator)));
 	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
+}
 
-	D3D12_RESOURCE_DESC textureDesc;
+void Mesh::LoadMeshData() {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(meshPath, aiProcess_Triangulate | aiProcess_FlipUVs);
+	ProcessScene(scene);
+}
+
+void Mesh::ProcessScene(const aiScene* scene) {
 
 	UINT currentIndexOffset = 0;
 	UINT currentVertexOffset = 0;
-
-
-
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj", aiProcess_Triangulate | aiProcess_FlipUVs);
-
-	// Load the image from file
-
-	int imageBytesPerRow;
-	BYTE* imageData;
-	int imageSize = Utils::LoadImageDataFromFile(&imageData, textureDesc, texturePath, imageBytesPerRow);
 
 	for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
 		aiMesh* mesh = scene->mMeshes[m];
@@ -86,9 +93,14 @@ void Mesh::setupMesh()
 		currentIndexOffset += subMesh.indexCount;
 		currentVertexOffset += mesh->mNumVertices;
 	}
+}
 
+void Mesh::CreateBuffers() {
+	CreateVertexBuffer();
+	CreateIndexBuffer();
+}
 
-
+void Mesh::CreateVertexBuffer() {
 	const UINT vertexBufferSize = static_cast<UINT>(vertices.size() * sizeof(Vertex));
 
 
@@ -121,7 +133,9 @@ void Mesh::setupMesh()
 
 	// transition the vertex buffer data from copy destination state to vertex buffer state
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+}
 
+void Mesh::CreateIndexBuffer() {
 
 	const UINT indexBufferSize = static_cast<UINT>(indices.size() * 3 * sizeof(DWORD));
 
@@ -158,7 +172,12 @@ void Mesh::setupMesh()
 	// transition the vertex buffer data from copy destination state to vertex buffer state
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
+}
 
+void Mesh::LoadTextureResources() {
+	BYTE* texture;
+	int imageBytesPerRow;
+	int imageSize = Utils::LoadImageDataFromFile(&texture, textureDesc, texturePath, imageBytesPerRow);
 
 	ThrowIfFailed(device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
 		D3D12_HEAP_FLAG_NONE, // no flags
@@ -169,10 +188,6 @@ void Mesh::setupMesh()
 
 	textureBuffer->SetName(L"Texture Buffer Resource Heap");
 	UINT64 textureUploadBufferSize;
-	// this function gets the size an upload buffer needs to be to upload a texture to the gpu.
-	// each row must be 256 byte aligned except for the last row, which can just be the size in bytes of the row
-	// eg. textureUploadBufferSize = ((((width * numBytesPerPixel) + 255) & ~255) * (height - 1)) + (width * numBytesPerPixel);
-	//textureUploadBufferSize = (((imageBytesPerRow + 255) & ~255) * (textureDesc.Height - 1)) + imageBytesPerRow;
 	device->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
 
 	// now we create an upload heap to upload our texture to the GPU
@@ -188,7 +203,7 @@ void Mesh::setupMesh()
 
 	// store vertex buffer in upload heap
 	D3D12_SUBRESOURCE_DATA textureData = {};
-	textureData.pData = &imageData[0]; // pointer to our image data
+	textureData.pData = &texture[0]; // pointer to our image data
 	textureData.RowPitch = imageBytesPerRow; // size of all our triangle vertex data
 	textureData.SlicePitch = imageBytesPerRow * textureDesc.Height; // also the size of our triangle vertex data
 
@@ -197,6 +212,11 @@ void Mesh::setupMesh()
 
 	// transition the texture default heap to a pixel shader resource (we will be sampling from this heap in the pixel shader to get the color of pixels)
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(textureBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+	delete texture;
+}
+
+void Mesh::SetupTextureShader() {
 
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 	heapDesc.NumDescriptors = 1;
@@ -219,19 +239,16 @@ void Mesh::setupMesh()
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&constantBuffer)));
+}
 
-
-
-	delete imageData;
-
-
+void Mesh::FinalizeSetup() {
 	vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
 	vertexBufferView.StrideInBytes = sizeof(Vertex);
-	vertexBufferView.SizeInBytes = vertexBufferSize;
+	vertexBufferView.SizeInBytes = static_cast<UINT>(vertices.size() * sizeof(Vertex));
 
 	indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	indexBufferView.SizeInBytes = indexBufferSize;
+	indexBufferView.SizeInBytes = static_cast<UINT>(indices.size() * 3 * sizeof(DWORD));
 
 	commandList->Close();
 }

@@ -139,10 +139,6 @@ void Renderer::SetupShaders() {
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
-	//D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
-	//{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-	//{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	//};
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -307,9 +303,10 @@ void Renderer::SetupRootSignature() {
 
 void Renderer::SetupVertexBuffer() {
 
+	std::string meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj";
 	LPCWSTR texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/diffuse.jpg";
 
-	Mesh mesh = Mesh(texturePath, m_device);
+	Mesh mesh = Mesh(meshPath, texturePath, m_device);
 
 	meshes.push_back(mesh);
 
@@ -342,16 +339,13 @@ void Renderer::OnUpdate()
 {
 	//delta time
 	time.Update();
-
-	//rotation speeds
-	float rotationSpeed = 60.0f; // degrees per second
-	m_rotationAngleY += rotationSpeed * time.GetDeltaTime();
 }
 
 void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
-	for (const auto& mesh : meshes) {
+	for (Mesh& mesh : meshes) {
+		mesh.rotation.y += 60.0f * time.GetDeltaTime();
 		PopulateCommandList(mesh);
 
 		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
@@ -406,15 +400,6 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 
 
 
-	//MATH
-	XMMATRIX modelMatrix = XMMatrixIdentity();
-	XMMATRIX translationMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(m_rotationAngleX, m_rotationAngleY * M_PI / 180.f, m_rotationAngleZ);
-	modelMatrix = modelMatrix * rotationMatrix;
-	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	modelMatrix = modelMatrix * scaleMatrix;
-
 
 	XMMATRIX viewMatrix = XMMatrixLookAtLH(
 		XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f),  // eyePosition
@@ -432,7 +417,7 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 
 
 
-	XMMATRIX mvpMatrix = modelMatrix * viewMatrix * projectionMatrix;
+	XMMATRIX mvpMatrix = mesh.modelMatrix() * viewMatrix * projectionMatrix;
 
 
 	void* pMappedData = nullptr;
@@ -441,7 +426,7 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 
 	// Create the MVP matrices and fill a temporary structure.
 	MVPMatrix mvpMatrices;
-	mvpMatrices.model = XMMatrixTranspose(modelMatrix);
+	mvpMatrices.model = XMMatrixTranspose(mesh.modelMatrix());
 	mvpMatrices.view = XMMatrixTranspose(viewMatrix);
 	mvpMatrices.projection = XMMatrixTranspose(projectionMatrix);
 
@@ -459,8 +444,7 @@ void Renderer::WaitForPreviousFrame() {
 	const UINT64 fence = m_fenceValue;
 	ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fence));
 	m_fenceValue++;
-	//std::cout << fence << std::endl;
-	//printf(char*)(m_fence->GetCompletedValue())
+
 	if (m_fence->GetCompletedValue() < fence) {
 		ThrowIfFailed(m_fence->SetEventOnCompletion(fence, m_fenceEvent));
 		WaitForSingleObject(m_fenceEvent, INFINITE);

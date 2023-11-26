@@ -6,43 +6,21 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Structs.h"
+#include "Node.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-class Mesh
+class Mesh: public Node
 {
 public:
-	struct Vertex {
-		XMFLOAT3 position;
-		XMFLOAT3 color;
-		XMFLOAT2 texCoord;
-	};
-
-	struct FaceIndices {
-		unsigned int a, b, c;
-	};
-
-	struct MVPMatrix
-	{
-		XMMATRIX model;
-		XMMATRIX view;
-		XMMATRIX projection;
-	};
-
-
-	struct SubMesh {
-		UINT indexCount;
-		UINT startIndexLocation;
-		INT baseVertexLocation;
-	};
-
-
-	Mesh(LPCWSTR texturePath, ComPtr<ID3D12Device>& device);
+	Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& device);
 
 	std::vector<Vertex> vertices;
 	std::vector<FaceIndices> indices;
-	//BYTE* texture;
+	
+	std::string meshPath;
 	LPCWSTR texturePath;
 	std::vector<SubMesh> subMeshes;
 	ComPtr<ID3D12Resource> vertexBuffer;
@@ -58,5 +36,16 @@ public:
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 
 private:
-	void setupMesh();
+	D3D12_RESOURCE_DESC textureDesc;
+
+	void SetupMesh();
+	void InitializeCommandObjects();
+	void LoadMeshData();
+	void ProcessScene(const aiScene* scene);
+	void CreateBuffers();
+	void CreateVertexBuffer();
+	void CreateIndexBuffer();
+	void LoadTextureResources();
+	void SetupTextureShader();
+	void FinalizeSetup();
 };
