@@ -13,5 +13,6 @@ protected:
 
 private:
 	static HWND m_hwnd;
+	static bool isMouseDown;
 };
 

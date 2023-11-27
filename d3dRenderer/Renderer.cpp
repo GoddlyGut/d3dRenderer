@@ -345,7 +345,7 @@ void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
 	for (Mesh& mesh : meshes) {
-		mesh.rotation.y += 60.0f * time.GetDeltaTime();
+		//mesh.rotation.y += 60.0f * time.GetDeltaTime();
 		PopulateCommandList(mesh);
 
 		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
@@ -366,8 +366,6 @@ void Renderer::OnDestroy() {
 }
 
 void Renderer::PopulateCommandList(Mesh mesh) {
-
-
 
 	ThrowIfFailed(mesh.commandList->Reset(mesh.commandAllocator.Get(), m_pipelineState.Get()));
 	mesh.commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -397,12 +395,22 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 	}
 	mesh.commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-
-
-
+	XMFLOAT3 eyePosition = { 0.0f, 0.0f, -10.0f };
+	//float distance = 10.0f;
 
 	XMMATRIX viewMatrix = XMMatrixLookAtLH(
-		XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f),  // eyePosition
+		XMVectorSet(eyePosition.x, eyePosition.y, eyePosition.z, 0.0f),
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+	);
+
+	eyePosition.x = distance * sinf(m_camYaw) * cosf(m_camPitch);
+	eyePosition.y = distance * sinf(m_camPitch);
+	eyePosition.z = distance * cosf(m_camYaw) * cosf(m_camPitch);
+
+
+	viewMatrix = XMMatrixLookAtLH(
+		XMLoadFloat3(&eyePosition),  // eyePosition
 		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),   // focalPoint
 		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // upDirection
 	);

@@ -13,6 +13,7 @@
 
 #include "DXSampleHelper.h"
 #include "Win32Application.h"
+#include <DirectXMath.h>
 
 class DXSample
 {
@@ -32,10 +33,14 @@ public:
     // Accessors.
     UINT GetWidth() const { return m_width; }
     UINT GetHeight() const { return m_height; }
-    void UpdateAspectRatio(int width, int height);
+    
     const WCHAR* GetTitle() const { return m_title.c_str(); }
 
     void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);
+
+    void UpdateAspectRatio(int width, int height);
+    void UpdateCameraPosition(int deltaX, int deltaY);
+    void UpdateCameraZoom(float distance);
 
 protected:
     std::wstring GetAssetFullPath(LPCWSTR assetName);
@@ -51,6 +56,9 @@ protected:
     UINT m_width;
     UINT m_height;
     float m_aspectRatio;
+    float m_camYaw, m_camPitch;
+    float distance;
+
 
     // Adapter info.
     bool m_useWarpDevice;

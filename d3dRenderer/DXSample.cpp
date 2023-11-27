@@ -25,6 +25,7 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     m_assetsPath = assetsPath;
 
     m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+    distance = 10.0f;
 }
 
 DXSample::~DXSample()
@@ -118,6 +119,21 @@ void DXSample::UpdateAspectRatio(int width, int height) {
     m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 
+void DXSample::UpdateCameraZoom(float zoomDelta) {
+    float minDistance = 5.0f;
+    float maxDistance = 200.0f;
+	distance += zoomDelta;
+	distance = max(minDistance, min(distance, maxDistance));
+}
+
+
+void DXSample::UpdateCameraPosition(int deltaX, int deltaY) {
+	m_camYaw += deltaX * 0.01f;
+	m_camPitch += deltaY * 0.01f;
+
+	const float maxPitch = DirectX::XM_PIDIV2 - 0.01f; // Slightly less than 90 degrees
+	m_camPitch = max(-maxPitch, min(m_camPitch, maxPitch));
+}
 
 // Helper function for parsing any supplied command line args.
 _Use_decl_annotations_
