@@ -303,13 +303,19 @@ void Renderer::SetupRootSignature() {
 
 void Renderer::SetupVertexBuffer() {
 
-	std::string meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/backpack.obj";
-	LPCWSTR texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/diffuse.jpg";
+	std::string meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/backpack.obj";
+	LPCWSTR texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/diffuse.jpg";
 
 	Mesh mesh = Mesh(meshPath, texturePath, m_device);
 
 	meshes.push_back(mesh);
 
+	meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj";
+	texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png";
+
+	Mesh mesh1 = Mesh(meshPath, texturePath, m_device);
+
+	meshes.push_back(mesh1);
 
 	for (const auto& mesh : meshes) {
 		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
@@ -344,14 +350,18 @@ void Renderer::OnUpdate()
 void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
+	std::vector<ID3D12CommandList*> ppCommandLists;
+
 	for (Mesh& mesh : meshes) {
-		//mesh.rotation.y += 60.0f * time.GetDeltaTime();
+		//mesh.rotation.y += 30.0f * time.GetDeltaTime();
+		//mesh.rotation.x += 30.0f * time.GetDeltaTime();
+		//mesh.rotation.z += 30.0f * time.GetDeltaTime();
 		PopulateCommandList(mesh);
 
-		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		ppCommandLists.push_back(mesh.commandList.Get());
+		
 	}
-
+	m_commandQueue->ExecuteCommandLists(ppCommandLists.size(), ppCommandLists.data());
 
 
 	ThrowIfFailed(m_swapChain->Present(1, 0));
@@ -384,7 +394,7 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
 	mesh.commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
 
-	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	const float clearColor[] = { 0.07f, 0.07f, 0.07f, 1.0f };
 	mesh.commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	mesh.commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	mesh.commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
