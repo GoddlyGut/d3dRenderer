@@ -30,10 +30,15 @@ public:
 	ComPtr<ID3D12Resource> textureBuffer;
 	ComPtr<ID3D12Resource> textureBufferUploadHeap;
 	ComPtr<ID3D12Device> device;
-	ComPtr<ID3D12GraphicsCommandList> commandList;
+	
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
-	ComPtr<ID3D12CommandAllocator> commandAllocator;
+	
+	ID3D12Resource* vertexBufferUploadHeap;
+	ID3D12Resource* indexBufferUploadHeap;
+	D3D12_SUBRESOURCE_DATA vertexData = {};
+	D3D12_SUBRESOURCE_DATA indexData = {};
+	D3D12_SUBRESOURCE_DATA textureData = {};
 
 private:
 	D3D12_RESOURCE_DESC textureDesc;

@@ -108,6 +108,9 @@ void Renderer::LoadPipeline() {
 		}
 	}
 
+	ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator)));
+	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
+
 
 }
 
@@ -232,6 +235,7 @@ void Renderer::SetupShaders() {
 	psoDesc.RasterizerState = rasterizerDesc;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	commandList->SetPipelineState(m_pipelineState.Get());
 
 }
 
@@ -302,31 +306,51 @@ void Renderer::SetupRootSignature() {
 
 
 void Renderer::SetupVertexBuffer() {
-
 	std::string meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/backpack.obj";
 	LPCWSTR texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/diffuse.jpg";
 
 	Mesh mesh = Mesh(meshPath, texturePath, m_device);
 
+	UpdateSubresources(commandList.Get(), mesh.vertexBuffer.Get(), mesh.vertexBufferUploadHeap, 0, 0, 1, &mesh.vertexData);
+
+	// transition the vertex buffer data from copy destination state to vertex buffer state
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mesh.vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+
+	UpdateSubresources(commandList.Get(), mesh.indexBuffer.Get(), mesh.indexBufferUploadHeap, 0, 0, 1, &mesh.indexData);
+
+	// transition the vertex buffer data from copy destination state to vertex buffer state
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mesh.indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+
+
+	UpdateSubresources(commandList.Get(), mesh.textureBuffer.Get(), mesh.textureBufferUploadHeap.Get(), 0, 0, 1, &mesh.textureData);
+
+	// transition the texture default heap to a pixel shader resource (we will be sampling from this heap in the pixel shader to get the color of pixels)
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mesh.textureBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+
 	meshes.push_back(mesh);
 
-	meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj";
-	texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png";
+	//meshPath = "C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj";
+	//texturePath = L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png";
 
-	Mesh mesh1 = Mesh(meshPath, texturePath, m_device);
+	//Mesh mesh1 = Mesh(meshPath, texturePath, m_device);
 
-	meshes.push_back(mesh1);
+	//meshes.push_back(mesh1);
 
-	for (const auto& mesh : meshes) {
-		ID3D12CommandList* ppCommandLists[] = { mesh.commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	//for (const auto& mesh : meshes) {
+	//	
+	//}
 
-		m_fenceValue++;
-		m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
-	}
+	commandList->Close();
 
+	ID3D12CommandList* ppCommandLists[] = { commandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
+	m_fenceValue++;
+	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
 
+	
 
 }
 
@@ -350,18 +374,38 @@ void Renderer::OnUpdate()
 void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
-	std::vector<ID3D12CommandList*> ppCommandLists;
+	
+	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), m_pipelineState.Get()));
+	commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+	// here
+	
+	commandList->RSSetViewports(1, &m_viewport);
+	commandList->RSSetScissorRects(1, &m_scissorRect);
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
+
+	const float clearColor[] = { 0.07f, 0.07f, 0.07f, 1.0f };
+	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	
+	
+	
+	
+
+
+
 
 	for (Mesh& mesh : meshes) {
 		//mesh.rotation.y += 30.0f * time.GetDeltaTime();
 		//mesh.rotation.x += 30.0f * time.GetDeltaTime();
 		//mesh.rotation.z += 30.0f * time.GetDeltaTime();
 		PopulateCommandList(mesh);
-
-		ppCommandLists.push_back(mesh.commandList.Get());
 		
 	}
-	m_commandQueue->ExecuteCommandLists(ppCommandLists.size(), ppCommandLists.data());
+
+	
 
 
 	ThrowIfFailed(m_swapChain->Present(1, 0));
@@ -377,33 +421,24 @@ void Renderer::OnDestroy() {
 
 void Renderer::PopulateCommandList(Mesh mesh) {
 
-	ThrowIfFailed(mesh.commandList->Reset(mesh.commandAllocator.Get(), m_pipelineState.Get()));
-	mesh.commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	mesh.commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+
+
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mesh.mainDescriptorHeap.Get() };
-	mesh.commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	mesh.commandList->SetGraphicsRootDescriptorTable(1, mesh.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(1, mesh.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-	mesh.commandList->SetGraphicsRootConstantBufferView(0, mesh.constantBuffer->GetGPUVirtualAddress());
-	mesh.commandList->RSSetViewports(1, &m_viewport);
-	mesh.commandList->RSSetScissorRects(1, &m_scissorRect);
-	mesh.commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-	mesh.commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
-
-	const float clearColor[] = { 0.07f, 0.07f, 0.07f, 1.0f };
-	mesh.commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	mesh.commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mesh.commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
-	mesh.commandList->IASetIndexBuffer(&mesh.indexBufferView);
+	commandList->SetGraphicsRootConstantBufferView(0, mesh.constantBuffer->GetGPUVirtualAddress());
+	
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+	commandList->IASetIndexBuffer(&mesh.indexBufferView);
 
 	for (const auto& subMesh : mesh.subMeshes) {
-		mesh.commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
+		commandList->DrawIndexedInstanced(subMesh.indexCount, 1, subMesh.startIndexLocation, subMesh.baseVertexLocation, 0);
 	}
-	mesh.commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	XMFLOAT3 eyePosition = { 0.0f, 0.0f, -10.0f };
 	//float distance = 10.0f;
@@ -454,7 +489,14 @@ void Renderer::PopulateCommandList(Mesh mesh) {
 	// Unmap the constant buffer.
 	mesh.constantBuffer->Unmap(0, nullptr);
 
-	ThrowIfFailed(mesh.commandList->Close());
+	ThrowIfFailed(commandList->Close());
+
+	ID3D12CommandList* ppCommandLists[] = { commandList.Get() };
+
+
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	
 }
 
 

@@ -41,6 +41,7 @@ private:
 
 inline void ThrowIfFailed(HRESULT hr)
 {
+    std::cout << hr << std::endl;
 	if (FAILED(hr))
 	{
 		LPVOID errorMsg;

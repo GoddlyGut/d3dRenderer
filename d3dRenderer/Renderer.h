@@ -47,6 +47,8 @@ private:
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 
 
+	ComPtr<ID3D12GraphicsCommandList> commandList;
+	ComPtr<ID3D12CommandAllocator> commandAllocator;
 
 	UINT m_frameIndex;
 	HANDLE m_fenceEvent;
