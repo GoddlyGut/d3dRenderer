@@ -63,12 +63,14 @@ private:
 
 	std::vector<Mesh> meshes;
 
-
+	void SetupMeshResources(Mesh& mesh);
+	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
 
 	void LoadPipeline();
 	void LoadAssets();
-	void PopulateCommandList(Mesh mesh);
+	void PopulateCommandList(Mesh& mesh, XMMATRIX viewMatrix, XMMATRIX projectionMatrix);
 	void WaitForPreviousFrame();
+	
 
 	void SetupFence();
 	void SetupShaders();

@@ -16,6 +16,7 @@ class Mesh: public Node
 {
 public:
 	Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& device);
+	//~Mesh();
 
 	std::vector<Vertex> vertices;
 	std::vector<FaceIndices> indices;

@@ -13,7 +13,7 @@ XMMATRIX Node::modelMatrix() {
 	modelMatrix = modelMatrix * translationMatrix;		  //pitch, yaw, roll
 	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(rotation.x * M_PI / 180.f, rotation.y * M_PI / 180.f, rotation.z * M_PI / 180.f);
 	modelMatrix = modelMatrix * rotationMatrix;
-	XMMATRIX scaleMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	XMMATRIX scaleMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
 	modelMatrix = modelMatrix * scaleMatrix;
 	return modelMatrix;
 }

@@ -8,6 +8,7 @@ Mesh::Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& devi
 	SetupMesh();
 }
 
+
 void Mesh::SetupMesh()
 {
 	InitializeCommandObjects();
@@ -127,11 +128,6 @@ void Mesh::CreateVertexBuffer() {
 	vertexData.pData = reinterpret_cast<BYTE*>(vertices.data()); // pointer to our vertex array
 	vertexData.RowPitch = vertexBufferSize; // size of all our triangle vertex data
 	vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
-
-	//UpdateSubresources(commandList.Get(), vertexBuffer.Get(), vertexBufferUploadHeap, 0, 0, 1, &vertexData);
-
-	// transition the vertex buffer data from copy destination state to vertex buffer state
-	//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 }
 
 void Mesh::CreateIndexBuffer() {
@@ -165,11 +161,6 @@ void Mesh::CreateIndexBuffer() {
 	indexData.pData = reinterpret_cast<BYTE*>(indices.data()); // pointer to our vertex array
 	indexData.RowPitch = indexBufferSize; // size of all our triangle vertex data
 	indexData.SlicePitch = indexBufferSize; // also the size of our triangle vertex data
-
-	//UpdateSubresources(commandList.Get(), indexBuffer.Get(), indexBufferUploadHeap, 0, 0, 1, &indexData);
-
-	// transition the vertex buffer data from copy destination state to vertex buffer state
-	//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
 }
 
@@ -206,13 +197,6 @@ void Mesh::LoadTextureResources() {
 	textureData.RowPitch = imageBytesPerRow; // size of all our triangle vertex data
 	textureData.SlicePitch = imageBytesPerRow * textureDesc.Height; // also the size of our triangle vertex data
 
-	// Now we copy the upload buffer contents to the default heap
-	//UpdateSubresources(commandList.Get(), textureBuffer.Get(), textureBufferUploadHeap.Get(), 0, 0, 1, &textureData);
-
-	// transition the texture default heap to a pixel shader resource (we will be sampling from this heap in the pixel shader to get the color of pixels)
-	//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(textureBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
-	//delete texture;
 }
 
 void Mesh::SetupTextureShader() {
@@ -248,6 +232,4 @@ void Mesh::FinalizeSetup() {
 	indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	indexBufferView.SizeInBytes = static_cast<UINT>(indices.size() * 3 * sizeof(DWORD));
-
-	//commandList->Close();
 }
