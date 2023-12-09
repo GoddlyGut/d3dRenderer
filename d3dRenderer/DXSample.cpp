@@ -130,9 +130,6 @@ void DXSample::UpdateCameraZoom(float zoomDelta) {
 void DXSample::UpdateCameraPosition(int deltaX, int deltaY) {
 	m_camYaw += deltaX * 0.01f;
 	m_camPitch += deltaY * 0.01f;
-
-	const float maxPitch = DirectX::XM_PIDIV2 - 0.01f; // Slightly less than 90 degrees
-	m_camPitch = max(-maxPitch, min(m_camPitch, maxPitch));
 }
 
 // Helper function for parsing any supplied command line args.

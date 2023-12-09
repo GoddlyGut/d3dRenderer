@@ -362,6 +362,11 @@ void Renderer::SetupLightProperties(Light& light) {
 }
 
 void Renderer::SetupVertexBuffer() {
+
+	// camera #1
+	camera = Camera();
+
+
 	// mesh #1
 	Mesh mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/backpack.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/diffuse.jpg", m_device);
 	mesh.position.y = 3;
@@ -377,6 +382,7 @@ void Renderer::SetupVertexBuffer() {
 	// light #1
 	Light light = Light();
 	Renderer::SetupLightProperties(light);
+	light.type = 2;
 	light.position = XMFLOAT3(0.0f, 5.0f, 10.0f);
 	light.color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
@@ -391,6 +397,13 @@ void Renderer::SetupVertexBuffer() {
 
 	m_fenceValue++;
 	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
+}
+
+void Renderer::UpdateCamera() {
+	camera.m_camYaw = m_camYaw;
+	camera.m_camPitch = m_camPitch;
+	camera.m_aspectRatio = m_aspectRatio;
+	camera.distance = distance;
 }
 
 void Renderer::LoadAssets() {
@@ -408,6 +421,7 @@ void Renderer::OnUpdate()
 {
 	//delta time
 	time.Update();
+	Renderer::UpdateCamera();
 }
 
 void Renderer::OnRender() {
@@ -460,36 +474,14 @@ void Renderer::OnRender() {
 	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	
 
-	XMFLOAT3 eyePosition = { 0.0f, 0.0f, -10.0f };
-
-	XMMATRIX viewMatrix = XMMatrixLookAtLH(
-		XMVectorSet(eyePosition.x, eyePosition.y, eyePosition.z, 0.0f),
-		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
-		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
-	);
-
-	eyePosition.x = distance * sinf(m_camYaw) * cosf(m_camPitch);
-	eyePosition.y = distance * sinf(m_camPitch);
-	eyePosition.z = distance * cosf(m_camYaw) * cosf(m_camPitch);
+	
 
 
-	viewMatrix = XMMatrixLookAtLH(
-		XMLoadFloat3(&eyePosition),  // eyePosition
-		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),   // focalPoint
-		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // upDirection
-	);
 
-
-	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,           // Field of View in radians
-		m_aspectRatio,         // Aspect ratio (width/height)
-		0.1f,          // Near clipping plane
-		1000.0f            // Far clipping plane
-	);
 
 
 	for (Mesh& mesh : meshes) {
-		PopulateCommandList(mesh, viewMatrix, projectionMatrix);
+		PopulateCommandList(mesh, camera.viewMatrix(), camera.projectionMatrix());
 	}
 
 

@@ -4,6 +4,7 @@
 #include "Time.h"
 #include "Structs.h"
 #include "Light.h"
+#include "Camera.h"
 #include <iostream>
 
 
@@ -53,7 +54,7 @@ private:
 
 	ComPtr<ID3D12Resource> lightsUniformBuffer;
 
-
+	Camera camera;
 
 
 	UINT m_frameIndex;
@@ -73,6 +74,9 @@ private:
 	void SetupMeshResources(Mesh& mesh);
 	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
 	void SetupLightProperties(Light& light);
+
+	void UpdateCamera();
+
 
 	void LoadPipeline();
 	void LoadAssets();
