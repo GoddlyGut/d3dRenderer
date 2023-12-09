@@ -108,6 +108,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Light.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="Renderer.h" />

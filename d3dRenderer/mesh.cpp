@@ -9,9 +9,9 @@ Mesh::Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& devi
 }
 
 
+
 void Mesh::SetupMesh()
 {
-	InitializeCommandObjects();
 	LoadMeshData();
 	CreateBuffers();
 	LoadTextureResources();
@@ -20,9 +20,7 @@ void Mesh::SetupMesh()
 
 }
 
-void Mesh::InitializeCommandObjects() {
-	
-}
+
 
 void Mesh::LoadMeshData() {
 	Assimp::Importer importer;

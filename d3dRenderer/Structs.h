@@ -18,6 +18,12 @@ struct MVPMatrix
 	XMMATRIX model;
 	XMMATRIX view;
 	XMMATRIX projection;
+	XMMATRIX normalMatrix;
+};
+
+struct FragmentUniform {
+	UINT lightCount;
+	XMFLOAT3 cameraPosition;
 };
 
 

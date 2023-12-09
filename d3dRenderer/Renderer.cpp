@@ -237,6 +237,29 @@ void Renderer::SetupShaders() {
 	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 	commandList->SetPipelineState(m_pipelineState.Get());
 
+
+	// Fragment Uniform
+
+	m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FragmentUniform)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&fragmentUniformBuffer)
+	);
+	fragmentUniformBuffer->SetName(L"Fragment Uniform Buffer");
+
+	m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(Light)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&lightsUniformBuffer)
+	);
+	lightsUniformBuffer->SetName(L"Lights Buffer");
+
 }
 
 void Renderer::SetupRootSignature() {
@@ -253,7 +276,7 @@ void Renderer::SetupRootSignature() {
 	descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
 	descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
 
-	D3D12_ROOT_PARAMETER rootParameters[2];
+	D3D12_ROOT_PARAMETER rootParameters[4];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[0].Descriptor.ShaderRegister = 0;
 	rootParameters[0].Descriptor.RegisterSpace = 0;
@@ -262,6 +285,16 @@ void Renderer::SetupRootSignature() {
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
 	rootParameters[1].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // our pixel shader will be the only shader accessing this parameter for now
+
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[2].Descriptor.ShaderRegister = 1;
+	rootParameters[2].Descriptor.RegisterSpace = 0;
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[3].Descriptor.ShaderRegister = 2;
+	rootParameters[3].Descriptor.RegisterSpace = 0;
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 
 	// create a static sampler
@@ -305,10 +338,10 @@ void Renderer::SetupRootSignature() {
 }
 
 void Renderer::SetupMeshResources(Mesh& mesh) {
-	UpdateSubresources(commandList.Get(), mesh.vertexBuffer.Get(), mesh.vertexBufferUploadHeap, 0, 0, 1, &mesh.vertexData);
+	UpdateSubresources(commandList.Get(), mesh.vertexBuffer.Get(), mesh.vertexBufferUploadHeap.Get(), 0, 0, 1, &mesh.vertexData);
 	TransitionResource(mesh.vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-	UpdateSubresources(commandList.Get(), mesh.indexBuffer.Get(), mesh.indexBufferUploadHeap, 0, 0, 1, &mesh.indexData);
+	UpdateSubresources(commandList.Get(), mesh.indexBuffer.Get(), mesh.indexBufferUploadHeap.Get(), 0, 0, 1, &mesh.indexData);
 	TransitionResource(mesh.indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
 	UpdateSubresources(commandList.Get(), mesh.textureBuffer.Get(), mesh.textureBufferUploadHeap.Get(), 0, 0, 1, &mesh.textureData);
@@ -320,21 +353,35 @@ void Renderer::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATE
 }
 
 
-void Renderer::SetupVertexBuffer() {
+void Renderer::SetupLightProperties(Light& light) {
+	light.color = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	light.specularColor = XMFLOAT3(0.6f, 0.6f, 0.6f);
+	light.intensity = 1;
+	light.attenuation = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	light.type = 1;
+}
 
+void Renderer::SetupVertexBuffer() {
+	// mesh #1
 	Mesh mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/backpack.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/diffuse.jpg", m_device);
 	mesh.position.y = 3;
 	SetupMeshResources(mesh);
-
 	meshes.push_back(mesh);
 
+	// mesh #2
 	mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png", m_device);
 	mesh.scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
-
 	SetupMeshResources(mesh);
-
 	meshes.push_back(mesh);
 
+	// light #1
+	Light light = Light();
+	Renderer::SetupLightProperties(light);
+	light.position = XMFLOAT3(0.0f, 5.0f, 10.0f);
+	light.color = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
+	light.coneDirection = XMFLOAT3(0, -0.2f, -1.0f);
+	lights.push_back(light);
 
 
 	commandList->Close();
@@ -344,9 +391,6 @@ void Renderer::SetupVertexBuffer() {
 
 	m_fenceValue++;
 	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
-
-	
-
 }
 
 void Renderer::LoadAssets() {
@@ -369,16 +413,46 @@ void Renderer::OnUpdate()
 void Renderer::OnRender() {
 	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
-	ThrowIfFailed(commandAllocator->Reset());
 
+
+
+	// reset to prevent memory leaks
+	ThrowIfFailed(commandAllocator->Reset());
 	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), m_pipelineState.Get()));
 	
+	
+	
+
+	void* pMappedData = nullptr;
+	D3D12_RANGE readRange = { 0, 0 };
+	fragmentUniformBuffer->Map(0, &readRange, &pMappedData);
+
+	fragmentUniform.cameraPosition = XMFLOAT3(0.0f, 0.0f, 0.0f); //fix this
+	fragmentUniform.lightCount = (float)lights.size();
+	memcpy(pMappedData, &fragmentUniform, sizeof(fragmentUniform));
+	fragmentUniformBuffer->Unmap(0, nullptr);
+
+	pMappedData = nullptr;
+	readRange = { 0, 0 };
+	lightsUniformBuffer->Map(0, &readRange, &pMappedData);
+	memcpy(pMappedData, &lights[0], sizeof(lights[0]));
+	lightsUniformBuffer->Unmap(0, nullptr);
+
+	//Light* bufferPointer = nullptr;
+	//readRange = { 0, 0 };
+	//lightsUniformBuffer->Map(0, &readRange, reinterpret_cast<void**>(&bufferPointer));
+	//size_t lightCount = std::min(lights.size(), static_cast<size_t>(1));
+	//memcpy(bufferPointer, lights.data(), sizeof(Light) * lightCount);
+	//lightsUniformBuffer->Unmap(0, nullptr);
+
+
 	commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 	commandList->RSSetViewports(1, &m_viewport);
 	commandList->RSSetScissorRects(1, &m_scissorRect);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
+	commandList->SetGraphicsRootConstantBufferView(2, fragmentUniformBuffer->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(3, lightsUniformBuffer->GetGPUVirtualAddress());
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
 
@@ -387,7 +461,6 @@ void Renderer::OnRender() {
 	
 
 	XMFLOAT3 eyePosition = { 0.0f, 0.0f, -10.0f };
-	//float distance = 10.0f;
 
 	XMMATRIX viewMatrix = XMMatrixLookAtLH(
 		XMVectorSet(eyePosition.x, eyePosition.y, eyePosition.z, 0.0f),
@@ -418,6 +491,7 @@ void Renderer::OnRender() {
 	for (Mesh& mesh : meshes) {
 		PopulateCommandList(mesh, viewMatrix, projectionMatrix);
 	}
+
 
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
@@ -488,6 +562,40 @@ void Renderer::PopulateCommandList(Mesh& mesh, XMMATRIX viewMatrix, XMMATRIX pro
 	mvpMatrices.view = XMMatrixTranspose(viewMatrix);
 	mvpMatrices.projection = XMMatrixTranspose(projectionMatrix);
 
+
+	XMFLOAT4X4 fMatrix;
+	XMStoreFloat4x4(&fMatrix, mesh.modelMatrix()); // Convert XMMATRIX to XMFLOAT4X4
+
+	// Access elements in the first row
+	float m11 = fMatrix.m[0][0];
+	float m12 = fMatrix.m[0][1];
+	float m13 = fMatrix.m[0][2];
+	float m14 = fMatrix.m[0][3];
+
+	// Access elements in the second row
+	float m21 = fMatrix.m[1][0];
+	float m22 = fMatrix.m[1][1];
+	float m23 = fMatrix.m[1][2];
+	float m24 = fMatrix.m[1][3];
+
+	// Access elements in the third row
+	float m31 = fMatrix.m[2][0];
+	float m32 = fMatrix.m[2][1];
+	float m33 = fMatrix.m[2][2];
+	float m34 = fMatrix.m[2][3];
+
+	// Access elements in the fourth row
+	float m41 = fMatrix.m[3][0];
+	float m42 = fMatrix.m[3][1];
+	float m43 = fMatrix.m[3][2];
+	float m44 = fMatrix.m[3][3];
+	XMMATRIX upperLeft3x3 = XMMATRIX(
+		m11, m12, m13, 0.0f,
+		m21, m22, m23, 0.0f,
+		m31, m32, m33, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f);
+
+	mvpMatrices.normalMatrix = upperLeft3x3;
 	// Copy the matrices to the constant buffer.
 	memcpy(pMappedData, &mvpMatrices, sizeof(mvpMatrices));
 

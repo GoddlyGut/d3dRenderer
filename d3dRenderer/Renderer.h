@@ -3,7 +3,7 @@
 #include "DXSample.h"
 #include "Time.h"
 #include "Structs.h"
-
+#include "Light.h"
 #include <iostream>
 
 
@@ -16,9 +16,6 @@ using Microsoft::WRL::ComPtr;
 class Renderer : public DXSample
 {
 public:
-
-
-
 	Renderer(UINT width, UINT height, std::wstring name);
 
 	virtual void OnInit();
@@ -50,6 +47,15 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> commandList;
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 
+	// constant buffers
+	ComPtr<ID3D12Resource> fragmentUniformBuffer;
+	FragmentUniform fragmentUniform;
+
+	ComPtr<ID3D12Resource> lightsUniformBuffer;
+
+
+
+
 	UINT m_frameIndex;
 	HANDLE m_fenceEvent;
 	ComPtr<ID3D12Fence> m_fence;
@@ -62,9 +68,11 @@ private:
 
 
 	std::vector<Mesh> meshes;
+	std::vector<Light> lights;
 
 	void SetupMeshResources(Mesh& mesh);
 	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
+	void SetupLightProperties(Light& light);
 
 	void LoadPipeline();
 	void LoadAssets();

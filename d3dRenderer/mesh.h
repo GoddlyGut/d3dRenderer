@@ -16,7 +16,6 @@ class Mesh: public Node
 {
 public:
 	Mesh(std::string meshPath, LPCWSTR texturePath, ComPtr<ID3D12Device>& device);
-	//~Mesh();
 
 	std::vector<Vertex> vertices;
 	std::vector<FaceIndices> indices;
@@ -35,8 +34,8 @@ public:
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 	
-	ID3D12Resource* vertexBufferUploadHeap;
-	ID3D12Resource* indexBufferUploadHeap;
+	ComPtr<ID3D12Resource> vertexBufferUploadHeap;
+	ComPtr<ID3D12Resource> indexBufferUploadHeap;
 	D3D12_SUBRESOURCE_DATA vertexData = {};
 	D3D12_SUBRESOURCE_DATA indexData = {};
 	D3D12_SUBRESOURCE_DATA textureData = {};
@@ -45,7 +44,6 @@ private:
 	D3D12_RESOURCE_DESC textureDesc;
 
 	void SetupMesh();
-	void InitializeCommandObjects();
 	void LoadMeshData();
 	void ProcessScene(const aiScene* scene);
 	void CreateBuffers();
