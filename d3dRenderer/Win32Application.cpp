@@ -77,7 +77,7 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 		int width = LOWORD(lParam);  // New width of the window
 		int height = HIWORD(lParam); // New height of the window
 
-		pSample->UpdateAspectRatio(width, height);
+		pSample->UpdateWidthHeight(width, height);
 
 		break;
 	}
@@ -130,8 +130,9 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 
 			int deltaX = currentMousePos.x - lastMousePos.x;
 			int deltaY = currentMousePos.y - lastMousePos.y;
+			pSample->OnUpdateCameraPosition(deltaX, deltaY);
 
-			pSample->UpdateCameraPosition(deltaX, deltaY);
+			//pSample->SetDeltas(deltaX, deltaY);
 
 
 			lastMousePos = currentMousePos;
@@ -141,7 +142,7 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 		{
 			int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 			float zoomSpeed = 1.f; // Adjust as needed
-			pSample->UpdateCameraZoom((-zDelta / WHEEL_DELTA) * zoomSpeed);
+			pSample->OnUpdateCameraZoomDelta((-zDelta / WHEEL_DELTA) * zoomSpeed);
 			 // Clamp values
 
 			// Update the eye position based on new distance

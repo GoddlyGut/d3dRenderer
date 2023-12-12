@@ -25,6 +25,8 @@ public:
     virtual void OnUpdate() = 0;
     virtual void OnRender() = 0;
     virtual void OnDestroy() = 0;
+    virtual void OnUpdateCameraZoomDelta(float zoomDelta) = 0;
+    virtual void OnUpdateCameraPosition(int deltaX, int deltaY) = 0;
 
     // Samples override the event handlers to handle specific messages.
     virtual void OnKeyDown(UINT8 /*key*/) {}
@@ -38,9 +40,8 @@ public:
 
     void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);
 
-    void UpdateAspectRatio(int width, int height);
-    void UpdateCameraPosition(int deltaX, int deltaY);
-    void UpdateCameraZoom(float distance);
+    void UpdateWidthHeight(int width, int height);
+    
 
 protected:
     std::wstring GetAssetFullPath(LPCWSTR assetName);
@@ -55,10 +56,6 @@ protected:
     // Viewport dimensions.
     UINT m_width;
     UINT m_height;
-    float m_aspectRatio;
-    float m_camYaw, m_camPitch;
-    float distance;
-
 
     // Adapter info.
     bool m_useWarpDevice;

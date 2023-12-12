@@ -399,12 +399,7 @@ void Renderer::SetupVertexBuffer() {
 	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
 }
 
-void Renderer::UpdateCamera() {
-	camera.m_camYaw = m_camYaw;
-	camera.m_camPitch = m_camPitch;
-	camera.m_aspectRatio = m_aspectRatio;
-	camera.distance = distance;
-}
+
 
 void Renderer::LoadAssets() {
 
@@ -421,11 +416,22 @@ void Renderer::OnUpdate()
 {
 	//delta time
 	time.Update();
-	Renderer::UpdateCamera();
+	camera.Update(m_width, m_height);
 }
 
+
+void Renderer::OnUpdateCameraZoomDelta(float zoomDelta) {
+	camera.UpdateZoomDelta(zoomDelta);
+}
+
+
+void Renderer::OnUpdateCameraPosition(int deltaX, int deltaY) {
+	camera.UpdateCameraPosition(deltaX, deltaY);
+}
+
+
 void Renderer::OnRender() {
-	m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
+	//m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
 
 
 
@@ -475,10 +481,6 @@ void Renderer::OnRender() {
 	
 
 	
-
-
-
-
 
 	for (Mesh& mesh : meshes) {
 		PopulateCommandList(mesh, camera.viewMatrix(), camera.projectionMatrix());

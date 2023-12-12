@@ -23,8 +23,15 @@ public:
 	virtual void OnUpdate();
 	virtual void OnRender();
 	virtual void OnDestroy();
+	virtual void OnUpdateCameraZoomDelta(float zoomDelta);
+	virtual void OnUpdateCameraPosition(int deltaX, int deltaY);
 
 private:
+	float distance;
+	float m_camYaw, m_camPitch;
+
+
+
 	static const UINT FrameCount = 2;
 
 	CD3DX12_VIEWPORT m_viewport;

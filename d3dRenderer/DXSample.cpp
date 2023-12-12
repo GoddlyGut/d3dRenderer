@@ -23,9 +23,6 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     WCHAR assetsPath[512];
     GetAssetsPath(assetsPath, _countof(assetsPath));
     m_assetsPath = assetsPath;
-
-    m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-    distance = 10.0f;
 }
 
 DXSample::~DXSample()
@@ -113,24 +110,13 @@ void DXSample::SetCustomWindowText(LPCWSTR text)
     SetWindowText(Win32Application::GetHwnd(), windowText.c_str());
 }
 
-void DXSample::UpdateAspectRatio(int width, int height) {
+void DXSample::UpdateWidthHeight(int width, int height) {
     m_width = width;
     m_height = height;
-    m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-}
-
-void DXSample::UpdateCameraZoom(float zoomDelta) {
-    float minDistance = 5.0f;
-    float maxDistance = 200.0f;
-	distance += zoomDelta;
-	distance = max(minDistance, min(distance, maxDistance));
+    //m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 
 
-void DXSample::UpdateCameraPosition(int deltaX, int deltaY) {
-	m_camYaw += deltaX * 0.01f;
-	m_camPitch += deltaY * 0.01f;
-}
 
 // Helper function for parsing any supplied command line args.
 _Use_decl_annotations_
