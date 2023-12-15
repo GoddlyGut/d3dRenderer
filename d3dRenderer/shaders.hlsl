@@ -8,6 +8,7 @@ struct Light {
 	float3 attenuation;
     int type;
 	float3 coneDirection;
+    float value;
 };
 
 
@@ -37,16 +38,16 @@ cbuffer MVPMatrixBuffer : register(b0)
     float3x3 normalMatrix;
 }
 
-cbuffer FragmentUniformBuffer : register(b1) {
+cbuffer PixelUniformBuffer : register(b1) {
     uint lightCount;
     float3 cameraPosition;
 }
 
 
-#define MAX_LIGHTS 1
+#define MAX_LIGHTS 4
 
 cbuffer LightBuffer : register(b2) {
-    Light light;
+    Light lights[MAX_LIGHTS];
 }
 Texture2D t1 : register(t0);
 SamplerState s1 : register(s0);
@@ -85,56 +86,63 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     float materialShininess = 32;
     float3 materialSpecularColor = float3(0, 0, 0);
 
+
     float3 normalDirection = normalize(input.worldNormal);
 
+    for (int i = 0; i < lightCount; ++i) {
 
-    if (light.type == 1) { //1 = Sunlight
-        float3 lightDirection = normalize(light.position - input.worldPosition);
+        Light light = lights[i];
 
-        float diffuseIntensity = saturate(dot(lightDirection, normalDirection));
+        if (light.type == 1) { //1 = Sunlight
+            float3 lightDirection = normalize(light.position - input.worldPosition);
 
-        diffuseColor += light.color * baseColor * diffuseIntensity;
-        if (diffuseIntensity > 0) {
-            float3 reflection =
-            reflect(lightDirection, normalDirection);
-            float3 cameraDirection =
-            normalize(input.worldPosition - cameraPosition);
-            float specularIntensity =
-            pow(saturate(-dot(reflection, cameraDirection)),
-                materialShininess);
-            specularColor +=
-            light.specularColor * materialSpecularColor * specularIntensity;
-        }
-    } else if (light.type == 4) { //4 = Ambient
-        ambientColor += light.color * light.intensity;
-    } else if (light.type == 3) { //3 = PointLight
-        float d = distance(light.position, input.worldPosition);
-        float3 lightDirection = normalize(light.position - input.worldPosition);
+            float diffuseIntensity = saturate(dot(lightDirection, normalDirection));
 
-        float attenuation = 1.0 / (light.attenuation.x +
-                                    light.attenuation.y * d + light.attenuation.z * d * d);
+            diffuseColor += light.color * baseColor * diffuseIntensity;
+
+            if (diffuseIntensity > 0) {
+                float3 reflection =
+                reflect(lightDirection, normalDirection);
+                float3 cameraDirection =
+                normalize(input.worldPosition - cameraPosition);
+                float specularIntensity =
+                pow(saturate(-dot(reflection, cameraDirection)),
+                    materialShininess);
+                specularColor +=
+                light.specularColor * materialSpecularColor * specularIntensity;
+            }
+        } else if (light.type == 4) { //4 = Ambient
+            ambientColor += light.color * light.intensity;
+        } else if (light.type == 3) { //3 = PointLight
+            float d = distance(light.position, input.worldPosition);
+            float3 lightDirection = normalize(light.position - input.worldPosition);
+
+            float attenuation = 1.0 / (light.attenuation.x +
+                                        light.attenuation.y * d + light.attenuation.z * d * d);
         
-        float diffuseIntensity = saturate(dot(lightDirection, normalDirection));
-        float3 color = light.color * baseColor * diffuseIntensity;
-        color *= attenuation;
-        diffuseColor += color;
-    } else if (light.type == 2) { //2 = Spotlight
-        float3 lightDirection = normalize(-light.position);
-        float diffuseIntensity =
-        saturate(-dot(lightDirection, normalDirection));
-        diffuseColor += light.color * baseColor * diffuseIntensity;
-        if (diffuseIntensity > 0) {
-            float3 reflection =
-            reflect(lightDirection, normalDirection);
-            float3 cameraDirection =
-            normalize(input.worldPosition - cameraPosition);
-            float specularIntensity =
-            pow(saturate(-dot(reflection, cameraDirection)),
-                materialShininess);
-            specularColor +=
-            light.specularColor * materialSpecularColor * specularIntensity;
+            float diffuseIntensity = saturate(dot(lightDirection, normalDirection));
+            float3 color = light.color * baseColor * diffuseIntensity;
+            color *= attenuation;
+            diffuseColor += color;
+        } else if (light.type == 2) { //2 = Spotlight
+            float3 lightDirection = normalize(-light.position);
+            float diffuseIntensity =
+            saturate(-dot(lightDirection, normalDirection));
+            diffuseColor += light.color * baseColor * diffuseIntensity;
+            if (diffuseIntensity > 0) {
+                float3 reflection =
+                reflect(lightDirection, normalDirection);
+                float3 cameraDirection =
+                normalize(input.worldPosition - cameraPosition);
+                float specularIntensity =
+                pow(saturate(-dot(reflection, cameraDirection)),
+                    materialShininess);
+                specularColor +=
+                light.specularColor * materialSpecularColor * specularIntensity;
+            }
         }
     }
+    
 
 
 

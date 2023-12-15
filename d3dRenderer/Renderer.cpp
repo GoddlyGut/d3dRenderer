@@ -238,27 +238,6 @@ void Renderer::SetupShaders() {
 	commandList->SetPipelineState(m_pipelineState.Get());
 
 
-	// Fragment Uniform
-
-	m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FragmentUniform)),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&fragmentUniformBuffer)
-	);
-	fragmentUniformBuffer->SetName(L"Fragment Uniform Buffer");
-
-	m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(Light)),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&lightsUniformBuffer)
-	);
-	lightsUniformBuffer->SetName(L"Lights Buffer");
 
 }
 
@@ -369,25 +348,66 @@ void Renderer::SetupVertexBuffer() {
 
 	// mesh #1
 	Mesh mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/backpack.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/backpack/diffuse.jpg", m_device);
-	mesh.position.y = 3;
-	SetupMeshResources(mesh);
+	mesh.position.y = 0;
+	SetupMeshResources(mesh); 
 	meshes.push_back(mesh);
 
-	// mesh #2
-	mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png", m_device);
-	mesh.scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
-	SetupMeshResources(mesh);
-	meshes.push_back(mesh);
+	//// mesh #2
+	//mesh = Mesh("C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/plane.obj", L"C:/Users/ilyai/Documents/Visual Studio 2022/Projects/d3dRenderer/d3dRenderer/assets/ground/diffuse.png", m_device);
+	//mesh.scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
+	//SetupMeshResources(mesh);
+	//meshes.push_back(mesh);
 
 	// light #1
 	Light light = Light();
 	Renderer::SetupLightProperties(light);
 	light.type = 2;
-	light.position = XMFLOAT3(0.0f, 5.0f, 10.0f);
-	light.color = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	light.position = XMFLOAT3(0.0f, 0.0f, -10.0f);
+	light.color = XMFLOAT3(0.0f, 1.0f, 1.0f);
 	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
-	light.coneDirection = XMFLOAT3(0, -0.2f, -1.0f);
+	light.coneDirection = XMFLOAT3(0, 0.0f, -1.0f);
 	lights.push_back(light);
+
+	// light #2
+	light = Light();
+	Renderer::SetupLightProperties(light);
+	light.type = 2;
+	light.position = XMFLOAT3(0.0f, 0.0f, 10.0f);
+	light.color = XMFLOAT3(1.0f, 0.0f, 1.0f);
+	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
+	light.coneDirection = XMFLOAT3(0, 0.0f, 1.0f);
+	lights.push_back(light);
+
+	// light #3
+	light = Light();
+	Renderer::SetupLightProperties(light);
+	light.type = 2;
+	light.position = XMFLOAT3(0.0f, 10.0f, 0.0f);
+	light.color = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
+	light.coneDirection = XMFLOAT3(0, -1.0f, 0.0f);
+	lights.push_back(light);
+
+	// light #4
+	light = Light();
+	Renderer::SetupLightProperties(light);
+	light.type = 2;
+	light.position = XMFLOAT3(0.0f, -10.0f, 0.0f);
+	light.color = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	light.attenuation = XMFLOAT3(1.0f, 0.02f, 0.001f);
+	light.coneDirection = XMFLOAT3(0, 1.0f, 0.0f);
+	lights.push_back(light);
+
+
+
+	Renderer::SetupConstantBuffers();
+
+
+
+
+
+
+
 
 
 	commandList->Close();
@@ -397,6 +417,32 @@ void Renderer::SetupVertexBuffer() {
 
 	m_fenceValue++;
 	m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
+}
+
+void Renderer::SetupConstantBuffers() {
+
+	//pixel uniform buffer
+	m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(PixelUniform)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&pixelUniformBuffer)
+	);
+	pixelUniformBuffer->SetName(L"Pixel Uniform Buffer");
+
+
+	//light uniform buffer
+	m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(Light) * lights.size()),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&lightsUniformBuffer)
+	);
+	lightsUniformBuffer->SetName(L"Lights Buffer");
 }
 
 
@@ -445,25 +491,36 @@ void Renderer::OnRender() {
 
 	void* pMappedData = nullptr;
 	D3D12_RANGE readRange = { 0, 0 };
-	fragmentUniformBuffer->Map(0, &readRange, &pMappedData);
+	pixelUniformBuffer->Map(0, &readRange, &pMappedData);
 
-	fragmentUniform.cameraPosition = XMFLOAT3(0.0f, 0.0f, 0.0f); //fix this
-	fragmentUniform.lightCount = (float)lights.size();
-	memcpy(pMappedData, &fragmentUniform, sizeof(fragmentUniform));
-	fragmentUniformBuffer->Unmap(0, nullptr);
+	PixelUniform pixelUniform;
+	pixelUniform.cameraPosition = XMFLOAT3(0.0f, 0.0f, 0.0f); //fix this
+	pixelUniform.lightCount = (float)lights.size();
 
-	pMappedData = nullptr;
-	readRange = { 0, 0 };
-	lightsUniformBuffer->Map(0, &readRange, &pMappedData);
-	memcpy(pMappedData, &lights[0], sizeof(lights[0]));
-	lightsUniformBuffer->Unmap(0, nullptr);
+	memcpy(pMappedData, &pixelUniform, sizeof(pixelUniform));
+	pixelUniformBuffer->Unmap(0, nullptr);
 
-	//Light* bufferPointer = nullptr;
+
+	Light* pMappedDataB;
+	readRange = { 0, 0 }; // No CPU read will be performed.
+	lightsUniformBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pMappedDataB));
+	// Now pMappedDataB points to the GPU memory which we treat as an array.
+
+	// Copy data from your lights vector to the GPU.
+	memcpy(pMappedDataB, lights.data(), lights.size() * sizeof(Light));
+
+	// After writing to the buffer, define the range that we wrote to.
+	D3D12_RANGE writeRange = { 0, lights.size() * sizeof(Light) };
+	lightsUniformBuffer->Unmap(0, &writeRange);
+
+
+	//pMappedData = nullptr;
 	//readRange = { 0, 0 };
-	//lightsUniformBuffer->Map(0, &readRange, reinterpret_cast<void**>(&bufferPointer));
-	//size_t lightCount = std::min(lights.size(), static_cast<size_t>(1));
-	//memcpy(bufferPointer, lights.data(), sizeof(Light) * lightCount);
+	//lightsUniformBuffer->Map(0, &readRange, &pMappedData);
+	//memcpy(pMappedData, &lights[0], sizeof(lights[0]));
 	//lightsUniformBuffer->Unmap(0, nullptr);
+
+
 
 
 	commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -471,7 +528,7 @@ void Renderer::OnRender() {
 	commandList->RSSetViewports(1, &m_viewport);
 	commandList->RSSetScissorRects(1, &m_scissorRect);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-	commandList->SetGraphicsRootConstantBufferView(2, fragmentUniformBuffer->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(2, pixelUniformBuffer->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(3, lightsUniformBuffer->GetGPUVirtualAddress());
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);

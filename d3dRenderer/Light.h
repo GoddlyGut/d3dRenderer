@@ -27,6 +27,7 @@ struct Light {
 	int type;
 	DirectX::XMFLOAT3 coneDirection;// 12 bytes
 	//float pad5;
+	float value;
 
 };
 

@@ -21,7 +21,7 @@ struct MVPMatrix
 	XMMATRIX normalMatrix;
 };
 
-struct FragmentUniform {
+struct PixelUniform {
 	UINT lightCount;
 	XMFLOAT3 cameraPosition;
 };
